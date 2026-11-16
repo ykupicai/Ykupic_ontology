@@ -1,0 +1,39 @@
+# 辦公室設定檔範本
+# 用法：複製成 office.yaml（同一資料夾）後填寫。office.yaml 含本地路徑，已列入 .gitignore，不得 commit。
+# 所有腳本只認 office.yaml，找不到會明確失敗，不會猜路徑。
+
+# 必填。辦公室代碼，必須存在於 offices.yaml（TN／HC／TP）。
+office_code: HC
+
+# 辦公室名稱，會填進 vault 範本的 {{OFFICE_NAME}}。
+office_name: 新竹辦公室
+
+# 必填。本辦公室 vault 的根資料夾。
+# 路徑樣式：NAS 一律用正斜線 UNC，例如 //<NAS>/<共享名>/.../知識庫/<vault 資料夾>
+# Windows 本機路徑也可（例如 D:/知識庫/vault）。
+vault_root: //<NAS>/<共享名>/知識庫/<vault 資料夾>
+
+# 限制級目錄名（不分大小寫、整段比對資料夾名）。
+# 這些資料夾內的筆記視為限制級資料：不同步、不匯出，健檢會檢查是否都標了 sensitivity: restricted。
+restricted_dir_names: [30_committees]
+
+# 跨辦公室整合用：為 true 時，案件筆記必須填 office（等於上面的 office_code），
+# 且 case_id 必須以「<office_code>-」開頭，健檢會擋。新建的辦公室請保持 true。
+require_office_field: true
+
+# 同步目的地（相對 vault_root）。sync_to_vault.py 會把規則匯出與法規筆記「整個覆蓋」到這兩處，
+# 這兩個資料夾不得手改；若有人在裡面新增或改檔，同步會中止並列出，不會無聲蓋掉。不填則使用下列預設值。
+shared_dirs:
+  rules: 03_案件經驗知識層/70_法規索引/_shared
+  law_notes: 03_案件經驗知識層/71_核心法規全文/_shared
+
+# 選填。sync 時額外把 exports/ 的 csv／xlsx 複製到這些「絕對路徑」資料夾，
+# 用來維持下游工具既有的讀取位置（臺南使用；新竹、台北沒有這類需求就留空）。
+extra_export_targets: []
+
+# 選填。同步時被替換掉的舊資料夾備份到哪裡（絕對路徑，不可放在 vault_root 裡面）。
+# 不填則放在 repo 根的 _sync_backups/（已列入 .gitignore），保留最近 10 份。
+# sync_backup_dir: D:/知識庫同步備份
+# 範例：
+# extra_export_targets:
+#   - //<NAS>/<共享名>/<下游工具讀取的資料夾>

@@ -1,0 +1,80 @@
+# 每次 push／PR 重跑規則檢查、匯出同步檢查與測試（跳過本機 hook 的 push 也會在這裡被發現）。
+# push 到 main 後，notify job 在標題為「規則庫更新通知」的 issue 留言（檢查失敗也留言）；
+# 各辦公室 Watch 設 All Activity 或訂閱該 issue，就會收到 email。
+name: check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 需要歷史才能比對刪除的規則
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 安裝套件
+        run: python -m pip install -r requirements.txt
+      - name: 規則檢查
+        env:
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] && [ -n "$PUSH_BEFORE" ]; then
+            python -X utf8 core/tools/rule_check.py --ci --base "$PUSH_BEFORE"
+          else
+            python -X utf8 core/tools/rule_check.py --ci
+          fi
+      - name: 匯出同步檢查
+        run: python -X utf8 core/tools/rulebook_export.py --check
+      - name: 測試
+        run: python -B -X utf8 -m pytest core/tests -q -p no:cacheprovider
+
+  notify:
+    needs: check
+    # 只在 push 到 main 時通知；check 成功或失敗都留言（取消不留）
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.check.result == 'success' || needs.check.result == 'failure')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 安裝套件
+        run: python -m pip install -r requirements.txt
+      - name: 產生留言內容
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+          PUSHER: ${{ github.actor }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CHECK_RESULT: ${{ needs.check.result }}
+        run: |
+          extra=""
+          if [ "$CHECK_RESULT" != "success" ]; then extra="--failed"; fi
+          python -X utf8 core/tools/notify_text.py --before "$BEFORE" --after "$AFTER" \
+            --pusher "$PUSHER" --run-url "$RUN_URL" $extra > "$RUNNER_TEMP/notify_body.md"
+          cat "$RUNNER_TEMP/notify_body.md"
+      - name: 在「規則庫更新通知」issue 留言
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          title="規則庫更新通知"
+          num=$(gh issue list --state open --search "$title in:title" --limit 100 --json number,title \
+                  --jq "map(select(.title == \"$title\")) | sort_by(.number) | .[0].number // empty")
+          if [ -z "$num" ]; then
+            url=$(gh issue create --title "$title" \
+                    --body "規則庫每次 push 到 main 的自動通知。請各辦公室維護者訂閱本 issue（或 repo Watch 設 All Activity）以收到 email。")
+            num="${url##*/}"
+          fi
+          gh issue comment "$num" --body-file "$RUNNER_TEMP/notify_body.md"

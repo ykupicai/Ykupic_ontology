@@ -1,0 +1,33 @@
+# 新規則範本（本檔不是規則，rule_check／匯出不會讀它）。
+# 用法：複製到 rules/pending/<自己辦公室代碼>/<rule_id>.yaml，檔名等於 rule_id，逐欄填寫（開頭這幾行註解整理格式時會自動移除）。
+# 欄位定義、enum、白名單見 rules/_fields.yaml；21 欄順序不可改；沒有內容的欄位寫「—」或 null。
+# 引號、換行（CRLF／LF）格式不拘：存檔後跑 python -X utf8 core/tools/rulebook_export.py 會自動整理成標準格式（值不變）。
+# 唯一要注意：像 10、1.5 這種會被當成數字的值，請寫成 '10' 才會是文字（rule_check 會提示）。
+rule_id: XHC-1
+法規:
+法規代碼:
+現行版本:
+編: —
+條號:
+條文要旨:
+適用辦理方式:
+觸發條件: —
+回答型態: 6實質計算
+資料來源／判斷依據: —
+進綜理表: 是
+評估事項: —
+○△╳判定邏輯(初擬): —
+因應手段: —
+手段法源: —
+手段門檻: —
+時程約束: —
+完成後可升級為○: —
+核對狀態:
+覆寫/從屬總編規則: —
+status: active
+superseded_by: null
+added_by: HC
+reviewed_by: null
+reviewed_at: null
+source_url: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=
+legacy_import: false

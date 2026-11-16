@@ -1,0 +1,67 @@
+# 匯出 xlsx 的工作表順序與版面（欄寬、凍結窗格）。source: rules 代表內容由 rules/ 規則檔產生。
+sheets:
+- name: 00_說明
+  file: 00_說明.yaml
+  layout:
+    column_widths:
+      A: 20.0
+      B: 118.0
+    freeze_panes: A2
+- name: 10_評估事項
+  file: 10_評估事項.yaml
+  layout:
+    column_widths:
+      A: 9.0
+      B: 12.0
+      C: 46.0
+      D: 36.0
+      E: 26.0
+    freeze_panes: A2
+- name: 20_規則庫
+  source: rules
+  layout:
+    column_widths:
+      A: 12.0
+      B: 34.0
+      C: 18.0
+      D: 26.0
+      E: 7.0
+      F: 10.0
+      G: 80.0
+      H: 22.0
+      I: 34.0
+      J: 14.0
+      K: 36.0
+      L: 8.0
+      M: 10.0
+      N: 66.0
+      O: 56.0
+      P: 34.0
+      Q: 32.0
+      R: 28.0
+      S: 14.0
+      T: 40.0
+      U: 22.0
+    freeze_panes: A2
+- name: 30_專編差異矩陣
+  file: 30_專編差異矩陣.yaml
+  layout:
+    column_widths:
+      A: 7.0
+      B: 24.0
+      C: 16.0
+      D: 40.0
+      E: 40.0
+      F: 48.0
+      G: 44.0
+      H: 44.0
+      I: 40.0
+      J: 52.0
+    freeze_panes: A2
+- name: 40_圖例與產表規則
+  file: 40_圖例與產表規則.yaml
+  layout:
+    column_widths:
+      A: 26.0
+      B: 122.0
+    freeze_panes: A2

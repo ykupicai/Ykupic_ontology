@@ -1,0 +1,21 @@
+# 各辦公室自己的設定（含 NAS 路徑），不入版控；範本見 office.example.yaml
+office.yaml
+office.yaml*
+office_*.yaml
+
+# Python 產物
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# 建置暫存與個人設定
+_build/
+_sync_backups/
+.claude/settings.local.json
+
+# Office 暫存檔
+~$*

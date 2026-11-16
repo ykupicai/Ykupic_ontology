@@ -1,0 +1,15 @@
+# 文字檔一律 LF
+* text=auto eol=lf
+
+# 二進位檔不做換行轉換
+*.pdf binary
+*.xlsx binary
+*.docx binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+
+# 匯出的 CSV 由 rulebook_export.py 產生並逐位元組比對（--check），保持產生時的原樣
+exports/*.csv -text
+# 各辦公室常同時補 CHANGELOG，合併時兩邊都保留
+CHANGELOG.md merge=union

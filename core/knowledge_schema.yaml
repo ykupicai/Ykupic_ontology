@@ -1,0 +1,201 @@
+schema_version: "3.1"
+updated: 2026-11-16
+status: transition
+maintainer: 共用 repo 維護者（各辦公室輪值，見 README）
+
+# 本檔是案件與法規 metadata 的機器可讀規格，各辦公室 vault 共用同一份。
+# 舊筆記可暫時保留 depth；新建或實質更新案件筆記時，必須改用 source_depth + lifecycle。
+#
+# 3.1 相對 3 的變更（向下相容，舊筆記不需重寫）：
+#   - case_note／legal_note 新增選填欄 office（辦公室代碼，須存在於 repo 根 offices.yaml）
+#     與 schema_version（筆記依哪一版規格撰寫）。新建或實質更新的筆記建議填；缺漏不算錯誤、
+#     不列入必填缺漏統計；有填才檢查格式（office 須在代碼表內、schema_version 須為 3、3.1 這類版本號）。
+#   - case_note 新增 office_enforcement：辦公室 office.yaml 設 require_office_field: true 時，
+#     案件筆記必須填 office（等於本辦公室代碼）且 case_id 以「<代碼>-」開頭，否則算格式錯誤。
+#   - legal_note.jurisdiction 新增 taipei、new_taipei、hsinchu_city、hsinchu_county。
+
+case_note:
+  required:
+    - type
+    - case_id
+    - lifecycle
+    - source_depth
+    - authority
+    - as_of
+    - updated
+    - source
+  enums:
+    lifecycle:
+      - evaluating
+      - active
+      - approved
+      - rejected
+      - terminated
+      - completed
+      - archived
+    source_depth:
+      - folder_only
+      - document_extracted
+      - interview_validated
+      - measured
+    authority:
+      - official
+      - case_document
+      - interview
+      - professional_inference
+      - mixed
+    confidence:
+      - high
+      - medium
+      - low
+    review_status:
+      - needs_source_refresh
+      - needs_lifecycle_review
+      - needs_owner_confirmation
+      - source_missing
+      - scan_incomplete
+      - verified
+    engagement_status:
+      - ongoing
+      - stopped
+      - completed
+      - unknown
+    procedure_status:
+      - pending
+      - approved
+      - rejected
+      - withdrawn
+      - closed
+      - unknown
+  optional:
+    - office
+    - schema_version
+    - confidence
+    - review_status
+    - metadata_updated
+    - source_read_at
+    - engagement_status
+    - procedure_status
+    - status_confirmed_at
+    - confirmation_basis
+    - next_action_owner
+    - due_at
+  conditional_required:
+    active:
+      - next_action
+      - blocker
+      - source_last_modified
+  date_fields: [as_of, updated, metadata_updated, status_confirmed_at, due_at]
+  timestamp_fields: [source_read_at, source_last_modified]
+  string_fields: [type, case_id, source, next_action, blocker, confirmation_basis, next_action_owner, office]
+  office_fields: [office]
+  version_fields: [schema_version]
+  # office.yaml 設 require_office_field: true 時才啟用（預設 false，舊 vault 不受影響）：
+  # 缺 office、office 與本辦公室 office_code 不符、case_id 未以「<office_code>-」開頭，都算格式錯誤。
+  office_enforcement:
+    office_field: office
+    id_prefix_field: case_id
+  legacy_depth_mapping:
+    "骨架（待補卷）": folder_only
+    "骨架": folder_only
+    "文件萃取": document_extracted
+    "深度訪談": interview_validated
+  notes:
+    - lifecycle 描述案件生命週期，不得再寫入 depth。
+    - source_depth 只描述知識來源深度，不代表案件已完成。
+    - authority 描述本篇結論的主要證據層級；混合來源用 mixed，並在內文逐段標示。
+    - as_of 是案件狀態截止日；updated 是筆記編修日，兩者不可互相替代。
+    - source_last_modified 是來源卷內排除暫存檔後的最新檔案時間，不等於已讀取該異動。
+    - metadata_updated 只表示 frontmatter 治理欄位異動，不得用來推高 as_of。
+    - needs_source_refresh 表示來源卷晚於 as_of，必須重讀文件後才能更新案件結論。
+    - engagement_status 描述委託履約，procedure_status 描述行政程序；不以其中一者推定另一者。
+    - 無終止公文的停止履約案件保留既有 lifecycle 決定，程序狀態未確認時填 unknown，不偽稱行政程序已終結。
+    - status_confirmed_at 與 confirmation_basis 記錄承辦確認日期及依據，不推高文件 as_of。
+    - source_read_at 僅在實際讀完來源時填寫含時區的 ISO 8601 時間；不得以掃描時間或 source_last_modified 代填。
+    - next_action_owner 使用職責角色，不放私人聯絡資料；due_at 無正式期限時不臆造日期。
+    - office 填承辦辦公室代碼（offices.yaml）；schema_version 填撰寫時依據的本檔版本。兩者皆選填，舊筆記不補。
+
+legal_note:
+  required:
+    - type
+    - legal_status
+    - jurisdiction
+    - verified_at
+    - official_url
+    - updated
+  enums:
+    legal_status:
+      - effective
+      - amended_pending
+      - future_system
+      - repealed
+      - unknown
+    jurisdiction:
+      - national
+      - tainan
+      - kaohsiung
+      - taipei
+      - new_taipei
+      - hsinchu_city
+      - hsinchu_county
+      - other_local
+  optional:
+    - office
+    - schema_version
+    - pcode
+    - promulgated_at
+    - effective_from
+    - effective_to
+    - verification_scope
+    - source_hash
+    - system_scope
+    - applicability_condition
+    - official_url_unavailable_reason
+  conditional_required:
+    future_system: [system_scope, applicability_condition]
+  # 必填欄可由替代欄滿足：無公開官方來源的行政指導文件（legal_status 須為 unknown）填理由即不算缺漏
+  required_alternatives:
+    official_url: official_url_unavailable_reason
+  date_fields: [verified_at, updated, promulgated_at, effective_from, effective_to]
+  timestamp_fields: []
+  string_fields: [type, jurisdiction, official_url, verification_scope, system_scope, applicability_condition, official_url_unavailable_reason, office]
+  office_fields: [office]
+  version_fields: [schema_version]
+  notes:
+    - verified_at 一律使用 YYYY-MM-DD，不使用「已確認」等自由文字。
+    - future_system 必須在內文說明現行過渡法制，不得與 effective 規則混用。
+    - legal_status 的認定範圍須配合 system_scope 與 applicability_condition；不得從新制章節推論整部法未施行。
+    - 舊 verified 相容映射為 verified_at 時保留原查證範圍，不構成本次重新查證。
+    - official_url_unavailable_reason 僅限查證後確無公開官方來源的行政指導文件（會議紀錄附件、未發布手冊等），legal_status 須為 unknown，且不得與 official_url 並存；理由須寫查證日期與查證範圍。正式公開後改填 official_url 並移除理由。
+    - 共用法規筆記由 repo 的 law_notes/ 維護，經 sync_to_vault.py 放進各 vault 的唯讀區；在 vault 內修改會在下次同步時被覆蓋。
+
+evaluation_progress:
+  legacy_container: done
+  states: [read_recorded, needs_source, needs_review]
+  notes:
+    - done 僅代表有處理紀錄，不代表完成；method=none 映射 needs_source。
+    - confidence 為低時映射 needs_review；其餘為 read_recorded，不代表專業覆核完成。
+    - extracted_count 保留作舊介面，意義為非空白文字列（含待補與存疑）；不得當成完成案數。
+
+project_contract:
+  required:
+    - project_id
+    - status
+    - owner
+    - source_of_truth
+    - knowledge_read_paths
+    - knowledge_writeback_paths
+    - tests
+    - last_verified_at
+    - sensitivity
+  optional:
+    - source_commit
+    - rule_store
+    - data_sources
+    - sync_mode
+
+migration:
+  policy: touch_to_migrate
+  explanation: 舊筆記不做一次性大量覆寫；每次實質更新時才依本規格遷移，並由 core/tools/vault_audit.py 追蹤剩餘量。
+  validation_policy: 缺漏與待查證不等於格式錯誤；null／空白仍列缺漏，不用 unknown 字串代填日期、網址或未允許 unknown 的狀態。相容讀取不算原始欄位已遷移。
+  individual_review_policy: 共用機制只建立驗證與待辦清單，不推定案件或法律事實；個別案件是否深化由各辦公室自行決定。

@@ -29,6 +29,20 @@
 
 ---
 
+## 2026-11-17 新增共用實務筆記 practice_notes（TN）
+
+- **改了什麼**：
+  - 新增 `practice_notes/`：臺南既有經驗去識別化後共 66 篇＋索引——`lessons/` 工程與查證教訓 43 篇、`practice/` 辦案通用實務 9 篇、`review/` 審議判斷依循 14 篇。案名、業主、地段地號、案件代碼、收發文號都已改寫成匿名描述。
+  - `sync_to_vault.py` 多同步一區：`practice_notes/` → vault `01_AI協作共用知識/55_共用實務筆記/_shared/`（`office.yaml` 的 `shared_dirs.practice_notes`，不填用此預設）。
+  - 新增 `core/tools/notes_check.py`（去識別化禁字＋檔頭檢查），由 `rule_check.py` 呼叫，push 前 hook 與 GitHub Actions 都會跑。
+  - 通知留言多一段「共用實務筆記有無變動」。
+  - CLAUDE.md 新增「共用實務筆記」一節（去識別化標準）；README 新增 9.5；vault 範本加 `55_共用實務筆記/`。
+- **各辦公室要做事嗎**：
+  - TN：要。`git pull` → `sync_to_vault.py`；臺南原本的 66 篇原檔改由同步副本取代（另依切換步驟處理，見總部說明）。
+  - HC：要。`git pull` → `sync_to_vault.py`（會新建 `55_共用實務筆記/_shared/`）→ `vault_audit.py`。hook 不用重裝。
+  - TP：同 HC。
+- **規則 ID**：無
+
 ## 2026-11-17 法規筆記索引加上「同步副本」公告（TN）
 
 - **改了什麼**：`law_notes/_核心法規全文-索引.md` 頂端加一段公告，說明法規重點筆記自 2026-11-17 起只在本 repo 維護、vault 內為同步副本；`updated` 改為 2026-11-17。筆記內容沒有變動。

@@ -79,7 +79,7 @@ def classify_rule_changes(entries, load_old, load_new) -> RuleChanges:
 
 def build_message(*, ok: bool, pusher: str, commits: list[tuple[str, str]], changes: RuleChanges | None,
                   law_notes_changed: bool | None, total_rule_files: int | None, run_url: str,
-                  more_commits: int = 0) -> str:
+                  more_commits: int = 0, practice_notes_changed: bool | None = None) -> str:
     lines = []
     if ok:
         lines.append(f"### 規則庫已更新（推送者：{pusher}）")
@@ -103,9 +103,11 @@ def build_message(*, ok: bool, pusher: str, commits: list[tuple[str, str]], chan
                 lines.append(f"- {title}（{len(items)}）：" + "、".join(items))
     lines += ["", "**法規筆記（law_notes/）**", ""]
     lines.append({True: "- 有變動", False: "- 無變動", None: "- 第一次推送，未比對"}[law_notes_changed])
+    lines += ["", "**共用實務筆記（practice_notes/）**", ""]
+    lines.append({True: "- 有變動", False: "- 無變動", None: "- 第一次推送，未比對"}[practice_notes_changed])
     if ok:
         lines += ["", "請各辦公室：`git pull` 後執行 `python -X utf8 core/tools/sync_to_vault.py`，"
-                      "把規則與法規筆記同步到自己的 vault。"]
+                      "把規則、法規筆記與實務筆記同步到自己的 vault。"]
     lines += ["", f"Actions 記錄：{run_url}"] if ok else []
     return "\n".join(lines) + "\n"
 
@@ -140,11 +142,12 @@ def collect(root: Path, before: str, after: str):
     if not valid_before:
         listing = _git(root, "ls-tree", "-r", "--name-only", after, "--", "rules") or ""
         total = sum(1 for p in listing.splitlines() if rl.classify_rel(p)[0] != "unknown" and p.endswith(".yaml"))
-        return commits, more, None, None, total
+        return commits, more, None, None, None, total
     entries = parse_name_status(_git(root, "diff", "--name-status", "--no-renames", before, after, "--", "rules/") or "")
     changes = classify_rule_changes(entries, lambda rel: _show(root, before, rel), lambda rel: _show(root, after, rel))
     law = bool((_git(root, "diff", "--name-only", before, after, "--", "law_notes/") or "").strip())
-    return commits, more, changes, law, None
+    practice = bool((_git(root, "diff", "--name-only", before, after, "--", "practice_notes/") or "").strip())
+    return commits, more, changes, law, practice, None
 
 
 def main(argv=None) -> int:
@@ -156,10 +159,10 @@ def main(argv=None) -> int:
     ap.add_argument("--failed", action="store_true", help="檢查未通過時的留言")
     ap.add_argument("--repo-root", type=Path, default=rl.REPO_ROOT)
     a = ap.parse_args(argv)
-    commits, more, changes, law, total = collect(a.repo_root.resolve(), a.before, a.after)
+    commits, more, changes, law, practice, total = collect(a.repo_root.resolve(), a.before, a.after)
     sys.stdout.write(build_message(ok=not a.failed, pusher=a.pusher, commits=commits, changes=changes,
                                    law_notes_changed=law, total_rule_files=total, run_url=a.run_url,
-                                   more_commits=more))
+                                   more_commits=more, practice_notes_changed=practice))
     return 0
 
 

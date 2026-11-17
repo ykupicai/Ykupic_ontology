@@ -54,8 +54,19 @@ def test_collect_from_git(tmp_path):
     (root / "law_notes").mkdir()
     (root / "law_notes/a.md").write_text("x\n", encoding="utf-8")
     after = sup.commit_all(root, "新增規則 XHC-1")
-    commits, more, ch, law, total = nt.collect(root, base, after)
+    commits, more, ch, law, practice, total = nt.collect(root, base, after)
     assert [m for _, m in commits] == ["新增規則 XHC-1"] and more == 0
-    assert ch.added == ["`XHC-1`（待轉正 HC）"] and law is True and total is None
-    commits, _, ch, law, total = nt.collect(root, "0" * 40, after)
-    assert ch is None and law is None and total == 4 and len(commits) == 1
+    assert ch.added == ["`XHC-1`（待轉正 HC）"] and law is True and practice is False and total is None
+    (root / "practice_notes").mkdir()
+    (root / "practice_notes/b.md").write_text("y\n", encoding="utf-8")
+    after2 = sup.commit_all(root, "新增實務筆記")
+    _, _, _, law, practice, _ = nt.collect(root, after, after2)
+    assert law is False and practice is True
+    commits, _, ch, law, practice, total = nt.collect(root, "0" * 40, after)
+    assert ch is None and law is None and practice is None and total == 4 and len(commits) == 1
+
+
+def test_build_message_lists_practice_notes():
+    msg = nt.build_message(ok=True, pusher="x", commits=[], changes=nt.RuleChanges(), law_notes_changed=False,
+                           total_rule_files=None, run_url=RUN, practice_notes_changed=True)
+    assert "practice_notes" in msg and msg.count("有變動") == 1

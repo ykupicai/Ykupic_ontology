@@ -28,6 +28,9 @@ def repo(tmp_path):
     (notes / "甲法-重點.md").write_text("---\ntype: law-digest\n---\n見 [[總部案件]]\n", encoding="utf-8")
     (notes / "乙法-重點.md").write_text("---\ntype: law-digest\n---\n見 [[甲法-重點]]\n", encoding="utf-8")
     (notes / "_附表原檔" / "附表.pdf").write_bytes(b"%PDF-1.4 fake")
+    practice = root / "practice_notes" / "lessons"
+    practice.mkdir(parents=True)
+    (practice / "某教訓.md").write_text("---\ntype: lesson\n---\n內容\n", encoding="utf-8")
     return root
 
 
@@ -368,7 +371,7 @@ def test_synced_vault_audits_clean_and_reports_lag(office, repo):
     out = io.StringIO()
     with contextlib.redirect_stdout(out):
         assert vault_audit.run_audit(cfg, repo_head=lambda root: "b" * 40) == 0   # 落後只示警
-    assert out.getvalue().count("⚠ vault 落後於 repo") == 2
+    assert out.getvalue().count("⚠ vault 落後於 repo") == 3   # rules、law_notes、practice_notes
 
 
 def test_audit_lag_falls_back_to_readme_and_reports_unsynced(office):

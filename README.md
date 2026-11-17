@@ -6,7 +6,8 @@
 
 - 臺南、新竹、台北三個辦公室共用的**私有** repo：法令檢核規則庫（文字正本）、核心法規重點筆記、核心腳本、vault 骨架範本。
 - 做完這份手冊，你會有：自己辦公室的本地知識庫（vault，健檢 0 錯誤）、能新增規則並在 push 前自動檢查、能同步別人的更新。
-- **案件資料不進這個 repo**，只留在各辦公室自己的 vault。治理規則、誰可以改什麼，先讀 [CLAUDE.md](CLAUDE.md)。
+- 另有 `practice_notes/`：三辦公室共用、**已去識別化**的實務經驗（工程教訓、辦案通用實務、審議判斷依循）。
+- **案件資料不進這個 repo**，只留在各辦公室自己的 vault；案件經驗要分享，去識別化後寫進 `practice_notes/`（見 9.5）。治理規則、誰可以改什麼，先讀 [CLAUDE.md](CLAUDE.md)。
 
 所有指令都在 repo 根資料夾執行。
 
@@ -135,7 +136,7 @@ python -X utf8 core/tools/sync_to_vault.py
 python -X utf8 core/tools/vault_audit.py
 ```
 
-- 同步後 vault 內會出現 `03_案件經驗知識層/70_法規索引/_shared/` 與 `71_核心法規全文/_shared/`。這兩個資料夾**每次整個覆蓋**。
+- 同步後 vault 內會出現 `03_案件經驗知識層/70_法規索引/_shared/`、`71_核心法規全文/_shared/` 與 `01_AI協作共用知識/55_共用實務筆記/_shared/`。這三個資料夾**每次整個覆蓋**。
 - 健檢要看到 **格式錯誤 0** 才算建置完成。有錯誤先看訊息指出的檔案，常見是 frontmatter 欄位缺漏或格式不對。
 
 ## 8. 裝 push 前檢查
@@ -233,8 +234,39 @@ python -X utf8 core/tools/vault_audit.py
 | 轉正時覆核者等於新增者 | 換另一個辦公室覆核 |
 | exports 未同步 | 重跑 `rulebook_export.py` 再 `git add exports` |
 | 修改了其他辦公室的 pending | 還原那些檔：`git restore <檔案>` |
+| `禁字：…`、`repo 外連結`、`frontmatter`（practice_notes） | 照訊息的「修法」改寫；標準見 [CLAUDE.md](CLAUDE.md)「共用實務筆記」一節 |
 
 **不要用 `git push --no-verify` 跳過檢查**，也**不要在 GitHub 網頁上直接改檔**（網頁編輯不會跑本機檢查）。GitHub Actions 會在 push 後再跑一次，失敗會在「規則庫更新通知」issue 留言示警，三邊都看得到。
+
+### 9.5 新增或修改共用實務筆記（`practice_notes/`）
+
+適合放：跨案歸納出來、別的辦公室也用得上的做法與教訓。不適合放：單一案件的紀錄、委員資料、報價合約。
+
+1. 依內容放子資料夾：`lessons/`（工程、查證教訓）、`practice/`（辦案通用實務）、`review/`（審議判斷依循）。
+2. 檔頭至少要有：
+
+   ```yaml
+   ---
+   type: lesson
+   source_office: HC
+   deidentified: true
+   updated: 2026-11-20
+   ---
+   ```
+
+3. **去識別化**：案名、業主、地段地號、案件代碼、收發文號、委員姓名、金額、內網路徑都不能出現，改寫成「新竹某廠房增建案」「某段某地號」。
+   要引用已公告的解釋函，把文號原樣列進檔頭 `allow_terms:` 清單。`[[連結]]` 只能連 `practice_notes/`、`law_notes/` 內的筆記。完整標準見 [CLAUDE.md](CLAUDE.md)。
+4. 先自己檢查，再提交：
+
+   ```powershell
+   python -X utf8 core/tools/notes_check.py
+   git add practice_notes CHANGELOG.md
+   git commit -m "新增實務筆記：<標題>"
+   git push
+   ```
+
+   不需要另一辦公室覆核；push 前 hook 與 GitHub Actions 會再檢查一次。檢查只擋得住明顯的格式，**描述性的可辨識資訊（例如「某縣唯一的太空中心案」）要自己把關**——push 後要從 git 歷史清掉很難。
+5. 想修改別的辦公室寫的實務筆記可以直接改，CHANGELOG 寫清楚改了什麼。
 
 ## 10. 常見問題
 
@@ -275,7 +307,7 @@ git commit
 Obsidian 有時沒偵測到外部檔案異動。先確認 `sync_to_vault.py` 有顯示複製了檔案；再關掉 vault 重新開啟，或執行命令面板的「重新載入應用程式而不儲存」。仍沒出現時檢查 `office.yaml` 的 `vault_root` 是否指到你開著的那個 vault。
 
 **可以直接在 vault 的 `_shared/` 裡改東西嗎？**
-**不行。** `_shared/` 每次同步整個覆蓋，改了就消失，也不會傳給別人。要改規則或共用法規筆記，改本 repo 的 `rules/`、`law_notes/` 再 push；本辦公室自己的補充放 `_local/`。
+**不行。** `_shared/` 每次同步整個覆蓋，改了就消失，也不會傳給別人。要改規則、共用法規筆記或實務筆記，改本 repo 的 `rules/`、`law_notes/`、`practice_notes/` 再 push；本辦公室自己的補充放 `_local/`。
 
 **`office.yaml` 不小心 commit 了**
 先停下來，不要 push；已 push 就立刻通知總部（內含本地路徑）。

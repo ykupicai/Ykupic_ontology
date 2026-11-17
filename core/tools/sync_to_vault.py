@@ -3,6 +3,7 @@
 
 - repo `exports/` 頂層的 .csv／.xlsx → vault 的 shared_dirs.rules
 - repo `law_notes/` 整棵             → vault 的 shared_dirs.law_notes
+- repo `practice_notes/` 整棵        → vault 的 shared_dirs.practice_notes（去識別化的共用實務筆記）
 - 目的資料夾整個替換，但**不會無聲吃掉本地內容**：
   1. 每次同步在目的資料夾寫 `.sync_manifest.json`（相對路徑＋SHA256＋同步時間＋來源 commit）。
   2. 下次同步前比對：有清單以外的檔、或清單內的檔被改過 → 中止並列出，不寫任何東西
@@ -11,8 +12,8 @@
      除非加 `--adopt`（明確表示目的地內容可被 repo 版本取代；仍會先備份）。
   4. 被替換的舊資料夾一律先完整複製到 vault 外的備份區（office.yaml 的 sync_backup_dir，
      預設 repo 根 `_sync_backups/`），只保留最近 10 份本腳本建立的備份。
-- 同步前另檢查：exports 與 rules/ 一致（rulebook_export.check）、git 工作區 exports/、law_notes/
-  沒有未提交修改。這兩項 `--force` 不略過。
+- 同步前另檢查：exports 與 rules/ 一致（rulebook_export.check）、git 工作區 exports/、law_notes/、
+  practice_notes/ 沒有未提交修改。這兩項 `--force` 不略過。
 - 替換採「暫存資料夾寫完並驗 SHA256 → 換名」，中途失敗時原目的資料夾保持原樣。
 - office.yaml 的 extra_export_targets 有值時，另把 exports 的 csv／xlsx 複製過去；
   覆蓋內容不同的同名檔前先改名留 `<檔名>.bak_<時間戳>`，內容相同則略過。
@@ -48,6 +49,7 @@ IGNORED_NAMES = {".DS_Store", "Thumbs.db", "desktop.ini", ".gitkeep"}
 IGNORED_DIRS = {"__pycache__", ".git", ".obsidian", ".trash"}
 BACKUP_KEEP = 10
 BACKUP_NAME = re.compile(r"^sync_\d{8}-\d{6}-\d{6}_[A-Z][A-Z0-9]*$")
+SYNC_SOURCES = ("exports", "law_notes", "practice_notes")
 
 
 class SyncError(RuntimeError):
@@ -142,9 +144,9 @@ def check_exports(repo_root: Path) -> list[str]:
 
 
 def check_git_clean(repo_root: Path) -> tuple[list[str], str | None]:
-    """回傳 (exports/、law_notes/ 未提交修改清單, 略過說明)。不在 git repo 內時略過。"""
+    """回傳 (exports/、law_notes/、practice_notes/ 未提交修改清單, 略過說明)。不在 git repo 內時略過。"""
     try:
-        result = subprocess.run(["git", "-C", str(repo_root), "status", "--porcelain", "--", "exports", "law_notes"],
+        result = subprocess.run(["git", "-C", str(repo_root), "status", "--porcelain", "--", *SYNC_SOURCES],
                                 capture_output=True, text=True, encoding="utf-8", timeout=30)
     except (OSError, subprocess.SubprocessError) as exc:
         return [], f"無法執行 git（{type(exc).__name__}），略過未提交修改檢查"
@@ -210,7 +212,7 @@ def judge_target(key: str, target: Path, status: dict, *, force: bool, adopt: bo
         if status["modified"]:
             lines.append(f"   本地修改 {len(status['modified'])} 檔：")
             lines += _listing(status["modified"])
-        lines.append("   處理：把要保留的內容併進 repo（law_notes/ 或 rules/）後 push，"
+        lines.append("   處理：把要保留的內容併進 repo（law_notes/、practice_notes/ 或 rules/）後 push，"
                      "或移到本地補充區（例：同層的 _local/），再重跑同步；"
                      "確定不要這些變動可加 --force（仍會先備份）。")
         return lines
@@ -380,12 +382,13 @@ def sync(cfg: dict, *, repo_root: Path = REPO_ROOT, dry_run: bool = False, force
                           + "\n".join(f"   {p}" for p in problems[:15]))
     dirty, git_note = git_check(repo_root)
     if dirty:
-        raise SyncBlocked("exports/ 或 law_notes/ 有未提交的修改；同步內容必須是已 commit 的版本：\n"
+        raise SyncBlocked("exports/、law_notes/ 或 practice_notes/ 有未提交的修改；同步內容必須是已 commit 的版本：\n"
                           + "\n".join(f"   {line}" for line in dirty[:15]))
     if git_note:
         log.append(f"註：{git_note}")
     exports = collect_exports(repo_root / "exports")
     law_notes = collect_tree(repo_root / "law_notes")
+    practice_notes = collect_tree(repo_root / "practice_notes")
     extras = [Path(item) for item in cfg.get("extra_export_targets") or []]
     missing = [str(path) for path in extras if not path.is_dir()]
     if missing:
@@ -395,6 +398,7 @@ def sync(cfg: dict, *, repo_root: Path = REPO_ROOT, dry_run: bool = False, force
     jobs = [
         ("rules", "法令檢核規則庫匯出", "exports/", exports),
         ("law_notes", "核心法規重點筆記", "law_notes/", law_notes),
+        ("practice_notes", "共用實務筆記（去識別化）", "practice_notes/", practice_notes),
     ]
     blocked = []
     plans = []
@@ -445,7 +449,7 @@ def main(argv=None) -> int:
         sys.stdout.reconfigure(encoding="utf-8")
     except Exception:
         pass
-    parser = argparse.ArgumentParser(description="把 repo 的 exports 與 law_notes 同步到 vault 唯讀區")
+    parser = argparse.ArgumentParser(description="把 repo 的 exports、law_notes、practice_notes 同步到 vault 唯讀區")
     parser.add_argument("--dry-run", action="store_true", help="只做檢查並列出會做的事，不寫入")
     parser.add_argument("--force", action="store_true",
                         help="目的地有本地新增／修改時仍覆蓋（會先備份；不略過 exports 一致性與 git 檢查）")

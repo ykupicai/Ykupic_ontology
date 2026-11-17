@@ -27,6 +27,7 @@ DEFAULT_RESTRICTED_DIR_NAMES = ("30_committees",)
 DEFAULT_SHARED_DIRS = {
     "rules": "03_案件經驗知識層/70_法規索引/_shared",
     "law_notes": "03_案件經驗知識層/71_核心法規全文/_shared",
+    "practice_notes": "01_AI協作共用知識/55_共用實務筆記/_shared",
 }
 ALLOWED_KEYS = {
     "office_code", "office_name", "vault_root", "restricted_dir_names",
@@ -119,7 +120,7 @@ def load_office_config(path=None, *, offices_path=None, require_vault_exists: bo
     """讀取並驗證 office.yaml，回傳正規化後的 dict。
 
     回傳鍵：office_code、office_name、vault_root（str）、restricted_dir_names（list[str]）、
-    shared_dirs（{"rules", "law_notes"}，相對 vault_root 的 posix 路徑）、
+    shared_dirs（{"rules", "law_notes", "practice_notes"}，相對 vault_root 的 posix 路徑）、
     extra_export_targets（list[str]）、sync_backup_dir（絕對路徑，vault 外；預設 repo 根 _sync_backups）、
     require_office_field（bool，預設 False）、office_codes（代碼表全部代碼）、config_path、repo_root。
     require_vault_exists=False 只給 init_vault 用（vault 可能尚未建立，但上層資料夾須存在）。
@@ -165,17 +166,22 @@ def load_office_config(path=None, *, offices_path=None, require_vault_exists: bo
         raise OfficeConfigError("restricted_dir_names 每項是單一目錄名，不可含路徑分隔符號。")
 
     shared_raw = data.get("shared_dirs") or {}
+    keys_text = "、".join(DEFAULT_SHARED_DIRS)
     if not isinstance(shared_raw, dict):
-        raise OfficeConfigError("shared_dirs 必須是對照表（rules、law_notes）。")
+        raise OfficeConfigError(f"shared_dirs 必須是對照表（{keys_text}）。")
     extra_keys = sorted(str(key) for key in shared_raw if key not in DEFAULT_SHARED_DIRS)
     if extra_keys:
-        raise OfficeConfigError(f"shared_dirs 只接受 rules、law_notes，無法辨識：{', '.join(extra_keys)}")
+        raise OfficeConfigError(f"shared_dirs 只接受 {keys_text}，無法辨識：{', '.join(extra_keys)}")
     shared = {key: _relative_dir(shared_raw.get(key, default), key) for key, default in DEFAULT_SHARED_DIRS.items()}
-    rules_parts = PurePosixPath(shared["rules"].casefold()).parts
-    notes_parts = PurePosixPath(shared["law_notes"].casefold()).parts
-    shorter = min(len(rules_parts), len(notes_parts))
-    if rules_parts[:shorter] == notes_parts[:shorter]:
-        raise OfficeConfigError("shared_dirs.rules 與 shared_dirs.law_notes 不可相同或互相包含（同步時會整個替換資料夾）。")
+    keys = list(shared)
+    for i, first in enumerate(keys):
+        for second in keys[i + 1:]:
+            a = PurePosixPath(shared[first].casefold()).parts
+            b = PurePosixPath(shared[second].casefold()).parts
+            shorter = min(len(a), len(b))
+            if a[:shorter] == b[:shorter]:
+                raise OfficeConfigError(f"shared_dirs.{first} 與 shared_dirs.{second} 不可相同或互相包含"
+                                        "（同步時會整個替換資料夾）。")
     folded = {item.casefold() for item in restricted}
     for key, rel in shared.items():
         if any(part.casefold() in folded for part in PurePosixPath(rel).parts):

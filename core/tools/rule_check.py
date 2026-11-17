@@ -7,7 +7,8 @@
 
 靜態檢查（不需要 git）：YAML 格式、是否為標準輸出格式（與 rulebook_export 整理結果相同）、欄位缺漏／多餘／順序、值型別、enum、規則 ID 格式與唯一、檔名＝ID、
 放置位置（national／local/<縣市>／pending/<辦公室>）、pending 前綴、狀態與 superseded_by、新增／覆核辦公室、
-轉正規則 reviewed_by ≠ added_by、source_url 必填與官方網域、匯入規則被刪除或內容被改、exports/ 是否與 rules/ 同步。
+轉正規則 reviewed_by ≠ added_by、source_url 必填與官方網域、匯入規則被刪除或內容被改、exports/ 是否與 rules/ 同步、
+practice_notes/ 去識別化（禁字、frontmatter、repo 外連結；規格見 notes_check.py）。
 差異檢查（需要 git 與比對基準）：已轉正規則（national／local）被刪檔；本機另擋修改其他辦公室的 pending 資料夾
 （唯一例外：轉正時把對方 pending 規則改為 deprecated＋superseded_by）。
 結束碼：0 通過；1 有錯誤；2 無法執行檢查。
@@ -32,6 +33,8 @@ sys.path.insert(0, str(TOOLS))
 import yaml  # noqa: E402
 
 from ykkb import rules as rl  # noqa: E402
+
+import notes_check  # noqa: E402
 
 ZERO_SHA = re.compile(r"^0+$")
 
@@ -61,6 +64,12 @@ def load_office_codes(repo_root: Path) -> set[str]:
     if isinstance(body, list):
         return {str(i.get("code")) for i in body if isinstance(i, dict) and i.get("code")}
     return {str(k) for k in body}
+
+
+def _notes_issues(root: Path, office_codes: set[str]) -> list[Issue]:
+    """practice_notes/ 去識別化檢查（規格見 notes_check.py）。"""
+    found, _count = notes_check.check_tree(root, set(office_codes))
+    return [Issue(i.file, i.item, i.message, i.fix) for i in found]
 
 
 def _is_date(value) -> bool:
@@ -317,10 +326,10 @@ def show_rule(repo_root: Path, rev: str, rel: str):
 
 
 def export_tree(repo_root: Path, rev: str, dest: Path) -> bool:
-    """把要 push 的 commit 內容（rules、exports、offices.yaml）解到 dest，供靜態檢查。"""
+    """把要 push 的 commit 內容（rules、exports、offices.yaml、practice_notes、law_notes）解到 dest，供靜態檢查。"""
     # 直接取 blob 原始位元組（git archive 會依 autocrlf 轉換換行，CSV 比對會失準）
     listing = git(repo_root, "-c", "core.quotepath=off", "ls-tree", "-r", "-z", rev, "--",
-                  "rules", "exports", "offices.yaml", binary=True)
+                  "rules", "exports", "offices.yaml", "practice_notes", "law_notes", binary=True)
     if listing is None:
         return False
     entries = []
@@ -528,6 +537,7 @@ def run(repo_root: Path, mode: str, base_arg: str | None, config_path, stdin_tex
                     continue
                 st, head_rules = static_checks(tree, rl.load_fields(tree), load_office_codes(tree))
                 issues += st
+                issues += _notes_issues(tree, load_office_codes(tree))
                 if base:
                     issues += diff_checks(repo_root, base, head, head_rules, local_office)
         if git(repo_root, "status", "--porcelain", "--", "rules", "exports"):
@@ -535,6 +545,7 @@ def run(repo_root: Path, mode: str, base_arg: str | None, config_path, stdin_tex
     else:
         st, head_rules = static_checks(repo_root, fields, office_codes)
         issues += st
+        issues += _notes_issues(repo_root, office_codes)
         for base, head in targets:
             issues += diff_checks(repo_root, base, head, head_rules, local_office)
             if git(repo_root, "status", "--porcelain", "--", "rules"):
@@ -558,7 +569,9 @@ def run(repo_root: Path, mode: str, base_arg: str | None, config_path, stdin_tex
         print(f"\n規則檢查未通過：{len(issues)} 項錯誤。修好後重新 commit 再 push（不要用 --no-verify 跳過）。")
         return 1
     n_rules = sum(1 for _ in rl.rule_paths(repo_root))
-    print(f"規則檢查通過（{n_rules} 個規則檔）")
+    n_notes = sum(1 for _ in (repo_root / notes_check.NOTES_DIR).rglob("*.md")) \
+        if (repo_root / notes_check.NOTES_DIR).is_dir() else 0
+    print(f"規則檢查通過（{n_rules} 個規則檔、{n_notes} 篇實務筆記）")
     return 0
 
 

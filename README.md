@@ -1,10 +1,10 @@
 # Ykupic_ontology 建置手冊
 
-給新竹（HC）、台北（TP）維護者照做。Windows／PowerShell 為主，每個步驟的指令都可直接複製。
+給新竹（HC）、台北（TP）、臺南第二辦公室（TN2）維護者照做。Windows／PowerShell 為主，每個步驟的指令都可直接複製。
 
 ## 1. 這是什麼
 
-- 臺南、新竹、台北三個辦公室共用的**私有** repo：法令檢核規則庫（文字正本）、核心法規重點筆記、核心腳本、vault 骨架範本。
+- 臺南、新竹、台北、臺南第二辦公室共用的**私有** repo：法令檢核規則庫（文字正本）、核心法規重點筆記、核心腳本、vault 骨架範本。
 - 做完這份手冊，你會有：自己辦公室的本地知識庫（vault，健檢 0 錯誤）、能新增規則並在 push 前自動檢查、能同步別人的更新。
 - 另有 `practice_notes/`：三辦公室共用、**已去識別化**的實務經驗（工程教訓、辦案通用實務、審議判斷依循）。
 - **案件資料不進這個 repo**，只留在各辦公室自己的 vault；案件經驗要分享，去識別化後寫進 `practice_notes/`（見 9.5）。治理規則、誰可以改什麼，先讀 [CLAUDE.md](CLAUDE.md)。
@@ -97,7 +97,7 @@ notepad office.yaml
 
 | 欄位 | 填什麼 |
 |---|---|
-| `office_code` | 你的辦公室代碼：新竹填 `HC`、台北填 `TP`（須存在於 `offices.yaml`） |
+| `office_code` | 你的辦公室代碼：新竹填 `HC`、台北填 `TP`、臺南第二辦公室填 `TN2`（須存在於 `offices.yaml`） |
 | `office_name` | 例如 `新竹辦公室` |
 | `vault_root` | 你要放 vault 的資料夾，NAS 用正斜線，例如 `//<NAS>/<共享名>/知識庫/<vault 資料夾>` |
 | `restricted_dir_names` | 保持預設 `[30_committees]` |

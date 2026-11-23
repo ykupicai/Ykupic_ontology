@@ -4,7 +4,7 @@ Claude Code 在本 repo 啟動時會讀這份。**本檔與 vault 各層 CLAUDE.
 
 ## 這個 repo 是什麼
 
-臺南（TN）、新竹（HC）、台北（TP）三個辦公室共用的私有 repo，放五樣東西：
+臺南（TN）、新竹（HC）、台北（TP）、臺南第二辦公室（TN2）共用的私有 repo，放五樣東西（2026-11-23 起四個辦公室；本檔其他處的「三邊」「三個辦公室」泛指所有加入的辦公室）：
 
 | 位置 | 內容 |
 |---|---|
@@ -33,6 +33,7 @@ Claude Code 在本 repo 啟動時會讀這份。**本檔與 vault 各層 CLAUDE.
   | TN | `rules/pending/TN/` | `XTN-1` |
   | HC | `rules/pending/HC/` | `XHC-1` |
   | TP | `rules/pending/TP/` | `XTP-1` |
+  | TN2 | `rules/pending/TN2/` | `XTN2-1` |
 
 - **轉正**：另一個辦公室對過官方原文覆核後，把檔搬到 `rules/national/` 或 `rules/local/<縣市代碼>/`、改配正式 ID、填 `reviewed_by`（覆核者的辦公室代碼）與 `reviewed_at`。**自己加的規則不能自己轉正**（`rule_check` 會擋）。舊的 `X…` 檔不刪，標已轉正並在 `superseded_by` 填新 ID，引用過它的清單才查得到。
 - 轉正前的規則可以用，但清單與報告要標示「未覆核」。pending 規則請在一兩個月內完成覆核（目前沒有自動提醒，靠各辦公室維護者定期看 `rules/pending/`）。

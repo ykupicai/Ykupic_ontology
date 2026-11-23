@@ -29,6 +29,16 @@
 
 ---
 
+## 2026-11-23 新增辦公室代碼 TN2（臺南第二辦公室）（TN）
+
+- **改了什麼**：`offices.yaml` 新增 `TN2`（臺南第二辦公室）；CLAUDE.md、README 的辦公室列表補上 TN2。`rules/pending/TN2/` 由 TN2 第一次新增規則時自行建立（其他辦公室不能在別人的 pending 資料夾放檔，`rule_check` 會擋）。新規則暫用 ID 為 `XTN2-<流水號>`。TN2 與 TN 是不同辦公室，可以互相覆核轉正。
+- **各辦公室要做事嗎**：
+  - TN：無（`git pull` 即可）
+  - HC：無（`git pull` 即可）
+  - TP：無（`git pull` 即可）
+  - TN2：要。照 README 第 2 節起建置，`office.yaml` 的 `office_code` 填 `TN2`。
+- **規則 ID**：無
+
 ## 2026-11-22 國土計畫法筆記改標「施行中」（TN）
 
 - **改了什麼**：法規筆記 `law_notes/國土計畫法-重點.md` 的 `legal_status` 由 `future_system` 改為 `effective`（全國法規資料庫無「尚未施行」標示，2026-11-20 查證）；`official_url` 改指全國法規資料庫；`applicability_condition` 改寫為依§45Ⅲ，功能分區圖公告後區域計畫法才停止適用。警示框文字同步修正。子法筆記維持「尚未施行」。

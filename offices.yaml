@@ -15,3 +15,7 @@ offices:
     name: 台北辦公室
     role: 辦公室實例
     joined: 2026-11-17
+  - code: TN2
+    name: 臺南第二辦公室
+    role: 辦公室實例
+    joined: 2026-11-23

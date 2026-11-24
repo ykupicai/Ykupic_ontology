@@ -111,7 +111,8 @@ def test_handwritten_promoted_rule_normalized(tmp_path):
     import rulebook_export
     root = sup.build_repo(tmp_path / "repo")
     raw = _handwritten("LUR-9001", added_by="HC").decode("utf-8-sig")
-    raw = raw.replace('reviewed_by: null', 'reviewed_by: "TP"').replace('reviewed_at: null', "reviewed_at: '2026-11-20'")
+    raw = raw.replace('reviewed_by: null', 'reviewed_by: "TP"').replace(
+        'reviewed_at: null', "reviewed_at: '2026-11-20'\r\nreview_mode: \"peer\"")
     (root / "rules/national").mkdir(exist_ok=True)
     (root / "rules/national/LUR-9001.yaml").write_text(raw, encoding="utf-8", newline="")
     rulebook_export.export(root)

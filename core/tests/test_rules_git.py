@@ -124,11 +124,13 @@ def test_promotion_by_wrong_office_blocked(repo):
     assert code == 1 and "[他辦公室 pending]" in out
 
 
-def test_self_promotion_blocked(repo):
+def test_self_promotion_allowed(repo):
+    """2026-11-23 起 HC 可自行轉正自己的 pending 規則（make_rule 依 reviewed_by＝added_by 帶 review_mode: self）。"""
     root, base = repo
     promote(root, reviewer="HC")
     code, out = pre_push(root, base, "HC")
-    assert code == 1 and "自己新增的規則不能自己轉正" in out
+    assert code == 0, out
+    assert (root / "rules/national/GEN-003.yaml").read_text(encoding="utf-8").count("review_mode: self") == 1
 
 
 def test_pre_push_checks_committed_tree_not_worktree(repo):

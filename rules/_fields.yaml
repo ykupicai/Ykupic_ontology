@@ -105,11 +105,25 @@ extension_fields:
   reviewed_by:
     required: false
     enum_source: offices.yaml
-    說明: 轉正時填覆核辦公室代碼；不可等於 added_by。national／local 的非匯入規則必填。
+    說明: 轉正時填覆核辦公室代碼（他辦覆核填覆核辦公室；自行轉正填自己的辦公室，即等於 added_by，review_mode 須為 self）。national／local 的非匯入規則必填。
   reviewed_at:
     required: false
     format: YYYY-MM-DD
     說明: 覆核日期；有 reviewed_by 時必填。
+  review_mode:
+    required: false
+    enum: [peer, self]
+    說明: >-
+      轉正方式（2026-11-23 起）。peer＝他辦覆核（reviewed_by ≠ added_by）；self＝自行轉正（reviewed_by ＝ added_by）。
+      有 reviewed_by 時必填，且須與 reviewed_by／added_by 是否相同一致；reviewed_by 空白時本欄也須空白。
+      legacy_import: true 的匯入規則不需要本欄。自行轉正的規則每月抽查一部分回官方原文核對，下游與報告可依本欄區分。
+  spot_checked_at:
+    required: false
+    format: YYYY-MM-DD
+    說明: 抽查核對日期（回官方原文核對自行轉正規則的日期）。只有 review_mode 為 self 的規則可以填；沒抽查過省略或寫 null。
+  spot_check_note:
+    required: false
+    說明: 抽查結果一句話（例：「與官方原文一致」「§5 門檻已更正」）。只有 review_mode 為 self 的規則可以填。
   source_url:
     required: false
     說明: 官方法規資料庫網址（網域須在 source_url 白名單）。非匯入規則必填；匯入規則改過 21 欄內容時也必填。
@@ -128,9 +142,12 @@ id:
   # 全 repo 唯一（含 deprecated 的 pending 規則；轉正要改配新 ID，舊 pending ID 不可被正式規則重用）
 
 # 轉正流程（rule_check 依此檢查）：
-#   覆核辦公室在 national/ 或 local/<縣市>/ 新增「正式 ID」規則檔（added_by＝原辦公室、reviewed_by＝覆核辦公室、
-#   reviewed_at、source_url 必填）；原 pending 檔不刪，只改 status: deprecated 並新增 superseded_by: <正式 ID>，其他欄位不動。
-#   本機 push 時，修改他辦公室 pending 資料夾只放行這一種變動。
+#   轉正者在 national/ 或 local/<縣市>/ 新增「正式 ID」規則檔（added_by＝原辦公室、reviewed_by＝轉正辦公室、
+#   reviewed_at、review_mode、source_url 必填）；原 pending 檔不刪，只改 status: deprecated 並新增 superseded_by: <正式 ID>，其他欄位不動。
+#   兩種轉正方式（2026-11-23 起）：
+#     peer：他辦覆核，reviewed_by ≠ added_by；
+#     self：自行轉正，reviewed_by ＝ added_by（只能轉正自己辦公室新增的規則；每月抽查，結果填 spot_checked_at／spot_check_note）。
+#   本機 push 時，修改他辦公室 pending 資料夾只放行 peer 轉正這一種變動；自己的 pending 資料夾本來就可以自由修改。
 
 # 匯出設定
 export:
@@ -148,7 +165,8 @@ export:
     file: exports/法令檢核規則庫.xlsx
     # 工作表順序與非規則工作表內容見 rules/_meta/workbook.yaml；
     # 另附 90_規則狀態 工作表（擴充欄），原五個工作表的表名、欄名、欄序不變。
-  status_sheet_columns: [rule_id, status, superseded_by, added_by, reviewed_by, reviewed_at, source_url, legacy_import]
+  # review_mode、spot_checked_at 於 2026-11-23 加入（只加在 90 表；20_規則庫 與 CSV 的 21 欄不變）
+  status_sheet_columns: [rule_id, status, superseded_by, added_by, reviewed_by, reviewed_at, review_mode, spot_checked_at, source_url, legacy_import]
 
 # 官方來源網址白名單
 source_url:
@@ -394,3 +412,31 @@ national_prefixes:
   IRL:
   - 法規: 原住民保留地開發管理辦法
     法規代碼: D0060026
+  # 2026-11-23 總部（TN）新配：TN 待覆核規則 XTN-2～XTN-40 自行轉正時使用
+  RRA:
+  - 法規: 農村再生條例
+    法規代碼: M0110017
+  RRD:
+  - 法規: 農村再生發展區計畫審核及管理監督辦法
+    法規代碼: M0110023
+  RCR:
+  - 法規: 農村社區土地重劃條例
+    法規代碼: D0060007
+  NSP:
+  - 法規: 國土計畫法
+    法規代碼: D0070230
+  NSPS:
+  - 法規: 一定規模以上或性質特殊土地申請使用許可認定標準
+    法規代碼: D0070312
+  NSPA:
+  - 法規: 國土計畫使用許可申請辦法
+    法規代碼: GL001691
+  NSPR:
+  - 法規: 國土計畫使用許可審議規則
+    法規代碼: D0070310
+  NSPO:
+  - 法規: 國土計畫使用許可核發後應循事項辦法
+    法規代碼: GL001690
+  NSPF:
+  - 法規: 國土保育費及影響費收取辦法
+    法規代碼: D0070311

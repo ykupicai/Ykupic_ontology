@@ -25,6 +25,13 @@ def make_rule(rule_id, **ext):
                  "回答型態": "6實質計算", "進綜理表": "是", "核對狀態": "已核對"})
     base = {"status": "active", "superseded_by": None, "added_by": "TN", "reviewed_by": None,
             "reviewed_at": None, "source_url": None, "legacy_import": False}
+    # 有 reviewed_by 而呼叫端沒指定 review_mode 時，依規則自動帶 peer／self（2026-11-23 起必填）；
+    # 要測「缺 review_mode」請明確傳 review_mode=None，或寫檔前把鍵刪掉。
+    if ext.get("reviewed_by") and "review_mode" not in ext:
+        ext["review_mode"] = "self" if ext["reviewed_by"] == ext.get("added_by", base["added_by"]) else "peer"
+    if "review_mode" in ext:
+        base = {**{k: base[k] for k in ("status", "superseded_by", "added_by", "reviewed_by", "reviewed_at")},
+                "review_mode": None, "source_url": None, "legacy_import": False}
     base.update(ext)
     data.update(base)
     return data

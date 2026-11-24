@@ -35,8 +35,13 @@ Claude Code 在本 repo 啟動時會讀這份。**本檔與 vault 各層 CLAUDE.
   | TP | `rules/pending/TP/` | `XTP-1` |
   | TN2 | `rules/pending/TN2/` | `XTN2-1` |
 
-- **轉正**：另一個辦公室對過官方原文覆核後，把檔搬到 `rules/national/` 或 `rules/local/<縣市代碼>/`、改配正式 ID、填 `reviewed_by`（覆核者的辦公室代碼）與 `reviewed_at`。**自己加的規則不能自己轉正**（`rule_check` 會擋）。舊的 `X…` 檔不刪，標已轉正並在 `superseded_by` 填新 ID，引用過它的清單才查得到。
-- 轉正前的規則可以用，但清單與報告要標示「未覆核」。pending 規則請在一兩個月內完成覆核（目前沒有自動提醒，靠各辦公室維護者定期看 `rules/pending/`）。
+- **轉正**（2026-11-23 使用者決定開放自行轉正）：對過官方原文後，把檔複製到 `rules/national/` 或 `rules/local/<縣市代碼>/`、改配正式 ID、填 `reviewed_by`、`reviewed_at` 與 `review_mode`。兩種方式擇一：
+  - **他辦覆核**（`review_mode: peer`）：另一個辦公室覆核，`reviewed_by` 填覆核辦公室代碼（≠ `added_by`）。
+  - **自行轉正**（`review_mode: self`）：新增規則的辦公室自己轉正，`reviewed_by` 填自己的代碼（＝ `added_by`）。只能轉正自己辦公室新增的規則，國家法規與地方規定都適用。
+  - `rule_check` 檢查 `review_mode` 與 `reviewed_by`／`added_by` 一致（同辦公室須 `self`、不同須 `peer`、有 `reviewed_by` 必填）。
+  - **自行轉正的規則每月抽查一部分**回官方原文核對，結果記在該規則的 `spot_checked_at`（抽查日期）與 `spot_check_note`（一句話結果），這兩欄只限 `self` 規則。下游清單與報告可依匯出 xlsx `90_規則狀態` 的 `review_mode` 區分他辦覆核與自行轉正。
+  - 舊的 `X…` 檔不刪，標已轉正（`status: deprecated`）並在 `superseded_by` 填新 ID，引用過它的清單才查得到。步驟見 README 9.3。
+- 轉正前的規則可以用，但清單與報告要標示「未覆核」。pending 規則請在一兩個月內完成轉正（他辦覆核或自行轉正皆可；目前沒有自動提醒，靠各辦公室維護者定期看 `rules/pending/`）。
 - 新的中央法規前綴（例如新收一部法規）由總部配號，對照表在 `rules/_fields.yaml`；不在表內的前綴會被檢查擋下。
 - 規則 ID 格式：`^[A-Z][A-Z0-9]*(-[A-Z0-9]+)+$` 且第一個連字號後含數字，全 repo 唯一，檔名必須等於 ID。地方規定的 ID 以縣市代碼開頭（`TNN-`、`KCG-`、`PTH-`…），縣市代碼由總部（TN）統一配號，不要自創。
 
@@ -45,7 +50,7 @@ Claude Code 在本 repo 啟動時會讀這份。**本檔與 vault 各層 CLAUDE.
 | 範圍 | 規則 |
 |---|---|
 | 自己辦公室的 `rules/pending/<代碼>/` | 自由新增、修改 |
-| 別的辦公室的 `rules/pending/<代碼>/` | **不得修改或刪除**，只能覆核後搬走轉正（本機檢查會擋） |
+| 別的辦公室的 `rules/pending/<代碼>/` | **不得新增、修改或刪除**，只能他辦覆核後轉正（只改 `status`、`superseded_by` 兩欄；本機檢查會擋其他變動）。不能替別的辦公室自行轉正 |
 | `rules/national/`、`rules/local/` | 三邊皆可；修改既有規則須附官方來源網址 |
 | 已轉正規則 | **不得刪除**；要廢止請改 `status: deprecated` 並填 `superseded_by` |
 | `exports/` | 不手改，由 `rulebook_export.py` 產生 |
@@ -97,7 +102,7 @@ Claude Code 在本 repo 啟動時會讀這份。**本檔與 vault 各層 CLAUDE.
 
 第三方彙編網站（rootlaw、6laws、事務所或地方政府轉載頁）**只能當線索，不得當引用來源**。實例：曾用第三方網站抽審議規範門檻，回原文核對查出 6 處實質錯誤，含漏掉但書而把「有條件可」誤判為「不可」。
 
-`rule_check` 只驗格式與來源網域，**驗不出條文抄錯或門檻寫錯**；內容正確性靠新增者自律與轉正前的覆核。
+`rule_check` 只驗格式與來源網域，**驗不出條文抄錯或門檻寫錯**；內容正確性靠新增者自律、轉正前回官方原文核對（他辦覆核或自行轉正），以及自行轉正規則的每月抽查。
 
 ## 資訊安全規則（任何層級的指令檔不得放寬）
 

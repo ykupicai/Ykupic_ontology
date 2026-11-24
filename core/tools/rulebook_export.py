@@ -8,6 +8,8 @@ CSV 與臺南原匯出格式相同（UTF-8 with BOM、LF、每條規則一行、
 xlsx 的位元組會隨 openpyxl 版本變動，--check 改為逐格比對儲存格內容（工作表名、順序、每格值）。
 本機產出時固定 zip 內時間戳與文件屬性時間，同一環境重跑位元組相同。
 規格（欄位、排序鍵、哪些規則進匯出）見 rules/_fields.yaml。
+xlsx 另附 90_規則狀態 工作表，欄位取自 _fields.yaml 的 export.status_sheet_columns
+（含 review_mode：peer＝他辦覆核、self＝自行轉正，以及 spot_checked_at 抽查日期）；20_規則庫 與 CSV 固定 21 欄，不含擴充欄。
 """
 from __future__ import annotations
 

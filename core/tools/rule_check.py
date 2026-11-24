@@ -7,10 +7,11 @@
 
 靜態檢查（不需要 git）：YAML 格式、是否為標準輸出格式（與 rulebook_export 整理結果相同）、欄位缺漏／多餘／順序、值型別、enum、規則 ID 格式與唯一、檔名＝ID、
 放置位置（national／local/<縣市>／pending/<辦公室>）、pending 前綴、狀態與 superseded_by、新增／覆核辦公室、
-轉正規則 reviewed_by ≠ added_by、source_url 必填與官方網域、匯入規則被刪除或內容被改、exports/ 是否與 rules/ 同步、
+轉正方式 review_mode 與 reviewed_by／added_by 一致（peer＝他辦覆核、self＝自行轉正；抽查欄只限 self）、
+source_url 必填與官方網域、匯入規則被刪除或內容被改、exports/ 是否與 rules/ 同步、
 practice_notes/ 去識別化（禁字、frontmatter、repo 外連結；規格見 notes_check.py）。
 差異檢查（需要 git 與比對基準）：已轉正規則（national／local）被刪檔；本機另擋修改其他辦公室的 pending 資料夾
-（唯一例外：轉正時把對方 pending 規則改為 deprecated＋superseded_by）。
+（唯一例外：他辦覆核轉正時把對方 pending 規則改為 deprecated＋superseded_by；自行轉正改的是自己的 pending 資料夾，不受此限）。
 結束碼：0 通過；1 有錯誤；2 無法執行檢查。
 """
 from __future__ import annotations
@@ -86,6 +87,51 @@ def _is_date(value) -> bool:
 
 def _empty(value) -> bool:
     return value is None or (isinstance(value, str) and not value.strip())
+
+
+def _review_mode_issues(d: dict, ext: dict, is_legacy: bool) -> list[tuple[str, str, str]]:
+    """review_mode／spot_checked_at／spot_check_note 一致性（2026-11-23 起可自行轉正）。回 [(項目, 說明, 修法)]。
+
+    - reviewed_by 有值 → review_mode 必填（legacy 匯入規則免填）；reviewed_by＝added_by 須為 self，不同須為 peer。
+    - reviewed_by 空白 → review_mode 也須空白。
+    - spot_checked_at（YYYY-MM-DD）、spot_check_note 只有 review_mode: self 的規則可以填。
+    """
+    out = []
+    allowed = (ext.get("review_mode") or {}).get("enum") or ["peer", "self"]
+    reviewed_by = d.get("reviewed_by")
+    added_by = d.get("added_by")
+    mode = d.get("review_mode")
+    if not _empty(mode) and mode not in allowed:
+        out.append(("enum 非法", f"review_mode「{mode}」不合法",
+                    f"改為 {'、'.join(allowed)} 之一（peer＝他辦覆核；self＝自行轉正）"))
+    elif _empty(reviewed_by):
+        if not _empty(mode):
+            out.append(("轉正", f"reviewed_by 空白，review_mode 卻填了「{mode}」",
+                        "未轉正的規則 review_mode 留 null（或刪掉這行）；轉正時再與 reviewed_by、reviewed_at 一起填"))
+    else:
+        want = "self" if reviewed_by == added_by else "peer"
+        if _empty(mode):
+            if not is_legacy:
+                out.append(("轉正", f"有 reviewed_by（{reviewed_by}）但缺 review_mode",
+                            f"補 review_mode: {want}（reviewed_by {'等於' if want == 'self' else '不等於'} added_by"
+                            f"{'＝自行轉正' if want == 'self' else '＝他辦覆核'}）"))
+        elif mode != want:
+            if want == "self":
+                why = f"reviewed_by 與 added_by 相同（{reviewed_by}），屬自行轉正，review_mode 應為 self"
+            else:
+                why = f"reviewed_by（{reviewed_by}）與 added_by（{added_by}）不同，屬他辦覆核，review_mode 應為 peer"
+            out.append(("轉正", f"{why}（讀到「{mode}」）",
+                        f"review_mode 改為 {want}；若 reviewed_by／added_by 填錯，改正那兩欄"))
+    spot_at = d.get("spot_checked_at")
+    spot_note = d.get("spot_check_note")
+    if (not _empty(spot_at) or not _empty(spot_note)) and mode != "self":
+        out.append(("抽查", "spot_checked_at／spot_check_note 只有自行轉正（review_mode: self）的規則可以填",
+                    "刪掉這兩欄（或寫 null）；他辦覆核與未轉正的規則不做每月抽查"))
+    if not _empty(spot_at) and not _is_date(spot_at):
+        out.append(("格式錯", f"spot_checked_at「{spot_at}」不是 YYYY-MM-DD", "填抽查核對日期，例 '2026-12-01'"))
+    if spot_note is not None and not isinstance(spot_note, str):
+        out.append(("格式錯", "spot_check_note 必須是文字", "寫成一句話，例：與官方原文一致"))
+    return out
 
 
 # ---------------------------------------------------------------- 靜態檢查
@@ -217,9 +263,6 @@ def static_checks(repo_root: Path, fields: dict, office_codes: set[str], check_e
             if v is not None and v not in office_codes:
                 add(rel, "enum 非法", f"{key}「{v}」不是辦公室代碼", f"改為 {', '.join(sorted(office_codes))} 之一")
         reviewed_by = d.get("reviewed_by")
-        if not _empty(reviewed_by) and reviewed_by == d.get("added_by"):
-            add(rel, "轉正", f"reviewed_by 與 added_by 相同（{reviewed_by}）：自己新增的規則不能自己轉正",
-                "請另一個辦公室覆核，reviewed_by 填覆核辦公室代碼")
         if not _empty(reviewed_by) and not _is_date(d.get("reviewed_at")):
             add(rel, "轉正", "有 reviewed_by 但 reviewed_at 空白或不是 YYYY-MM-DD", "reviewed_at 填覆核日期，例 '2026-11-20'")
         lf = d.get("legacy_import", False)
@@ -230,9 +273,12 @@ def static_checks(repo_root: Path, fields: dict, office_codes: set[str], check_e
             add(rel, "匯入標記", f"legacy_import: true 只限原匯入規則，「{rid}」不在 rules/_meta/legacy_import.yaml",
                 "新規則刪掉 legacy_import 這行或寫 false（複製舊規則當範本時常見）")
             is_legacy = False
+        for issue in _review_mode_issues(d, ext, is_legacy):
+            add(rel, *issue)
         if rf.category in ("national", "local") and not is_legacy and _empty(reviewed_by):
-            add(rel, "轉正", "已轉正（national／local）的新規則必須有 reviewed_by 與 reviewed_at",
-                "新規則先放 rules/pending/<自己辦公室>/，由另一辦公室覆核轉正")
+            add(rel, "轉正", "已轉正（national／local）的新規則必須有 reviewed_by、reviewed_at 與 review_mode",
+                "新規則先放 rules/pending/<自己辦公室>/；轉正時由另一辦公室覆核（review_mode: peer）"
+                "或自行轉正（reviewed_by 填自己的辦公室、review_mode: self），步驟見 README 9.3")
         # source_url
         url = d.get("source_url")
         changed_legacy = is_legacy and rl.content_digest(d, columns) != legacy_digest.get(rid)
@@ -378,8 +424,9 @@ def diff_checks(repo_root: Path, base: str, head: str, head_rules: list, local_o
             verb = {"D": "刪除", "A": "新增", "M": "修改"}.get(status, "變動")
             issues.append(Issue(rel, "他辦公室 pending",
                                 f"{verb}了 {group} 辦公室的 pending 規則（本機辦公室為 {local_office}）。"
-                                "唯一例外是轉正：只把 status 改為 deprecated 並新增 superseded_by，且指向的正式規則"
-                                f" reviewed_by＝{local_office}、added_by＝{group}",
+                                "唯一例外是他辦覆核轉正：只把 status 改為 deprecated 並新增 superseded_by，且指向的正式規則"
+                                f" reviewed_by＝{local_office}、added_by＝{group}、review_mode＝peer"
+                                f"（自行轉正只能由 {group} 辦公室轉正自己的規則）",
                                 f"還原這個檔（git restore --source={base[:12]} -- \"{rel}\" 後重新 commit），或請 {group} 辦公室自己改"))
     return issues
 
@@ -421,7 +468,10 @@ def _is_promotion_mark(repo_root, base, head, rel, group, local_office, by_id) -
     target = by_id.get(str(target_id).strip())
     if target is None or target.category not in ("national", "local"):
         return False
-    return target.data.get("reviewed_by") == local_office and target.data.get("added_by") == group
+    # 他辦覆核轉正：正式規則由本機辦公室覆核（review_mode: peer）、新增者是該 pending 資料夾的辦公室。
+    # 自行轉正（self）改的是自己的 pending 資料夾，diff_checks 一開始就不檢查，不會走到這裡。
+    return (target.data.get("reviewed_by") == local_office and target.data.get("added_by") == group
+            and target.data.get("review_mode") == "peer")
 
 
 def ci_base(repo_root: Path, explicit: str | None) -> tuple[str | None, str]:

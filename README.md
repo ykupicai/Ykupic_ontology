@@ -180,7 +180,7 @@ python -X utf8 core/tools/vault_audit.py
    - 逐欄填寫（檔頭的 `#` 註解不必刪，跑匯出時會自動整理）；21 個欄位的順序不可改，沒有內容寫「—」。欄位定義與 enum 見 `rules/_fields.yaml`。
    - `source_url` 要填到完整網址（範本裡的 `pcode=` 後面是空的，不補會被檢查擋下）。
    - 可以打開同類的既有規則（`rules/national/`、`rules/local/<縣市代碼>/`）參考寫法，但**不要直接複製既有規則檔**：既有規則帶著 `legacy_import: true` 與 `added_by: TN`，會被檢查擋下。
-   - 擴充欄位：`status: active`、`added_by: HC`（自己的辦公室代碼）、`source_url`（官方網址，必填，網域須在白名單內）、`legacy_import: false`；`reviewed_by`、`reviewed_at` 留 `null`（轉正時才由覆核辦公室填）。
+   - 擴充欄位：`status: active`、`added_by: HC`（自己的辦公室代碼）、`source_url`（官方網址，必填，網域須在白名單內）、`legacy_import: false`；`reviewed_by`、`reviewed_at` 留 `null`，`review_mode`、`spot_checked_at`、`spot_check_note` 不要寫（轉正時才填，見 9.3）。
    - 規則 ID 為 `XHC-1`，下一條用 `XHC-2`，依序流水編號。
 
 4. **在 `CHANGELOG.md` 追加一筆**（格式見該檔），規則 ID 欄寫「新增：`XHC-1`」。
@@ -197,14 +197,23 @@ python -X utf8 core/tools/vault_audit.py
    ```
 
    先 `git pull` 是為了拿到別人剛推的內容，減少推送被拒。
-6. push 成功後，另外兩個辦公室會收到通知（見第 2 節第 3 步），其中一邊會覆核。
+6. push 成功後，其他辦公室會收到通知（見第 2 節第 3 步）。轉正可以請另一辦公室覆核，也可以自己對過官方原文後自行轉正（見 9.3）。
 
-### 9.3 覆核並轉正另一辦公室的規則
+### 9.3 轉正規則（他辦覆核或自行轉正）
 
-例如台北覆核新竹的 `XHC-1`（**自己加的規則不能自己轉正**）：
+2026-11-23 起有兩種轉正方式，步驟相同，只差第 4 步填的欄位：
+
+| 方式 | 誰做 | `reviewed_by` | `review_mode` |
+|---|---|---|---|
+| 他辦覆核 | 另一個辦公室（例：台北覆核新竹的 `XHC-1`） | 覆核辦公室（`TP`） | `peer` |
+| 自行轉正 | 新增規則的辦公室自己（例：新竹轉正自己的 `XHC-1`） | 自己的辦公室（`HC`，等於 `added_by`） | `self` |
+
+自行轉正只能轉正**自己辦公室新增**的 pending 規則，不能替別的辦公室自行轉正。自行轉正的規則每月會抽查一部分回官方原文核對，抽查結果記在 `spot_checked_at`（抽查日期）與 `spot_check_note`（一句話結果）；這兩欄只有 `review_mode: self` 的規則可以填。下游清單與報告可以用匯出 xlsx 的 `90_規則狀態` 工作表的 `review_mode` 欄區分兩種轉正。
+
+以下以台北覆核新竹的 `XHC-1` 為例，自行轉正時把「台北」換成「新竹」即可：
 
 1. `git pull` 取得最新內容。
-2. **對過官方原文**：打開規則檔的 `source_url`，逐項核對條文、條號、門檻，確認一致。
+2. **對過官方原文**：打開規則檔的 `source_url`，逐項核對條文、條號、門檻，確認一致。自行轉正同樣要做這一步，不能因為是自己寫的就跳過。
 3. **複製**（不是搬移）到 `rules/national/`（中央法規）或 `rules/local/<縣市代碼>/`（地方規定），並**改配正式 ID**：中央法規用 `rules/_fields.yaml` 的 `national_prefixes` 對照表裡該法規的前綴（例如管制規則用 `LUR-`），地方規定用同檔的縣市代碼前綴。表裡沒有的新法規或縣市，請總部配號，不要自創（自創的前綴會被檢查擋下）。檔名等於新 ID：
 
    ```powershell
@@ -214,10 +223,35 @@ python -X utf8 core/tools/vault_audit.py
 4. 編輯**新檔**：
    - `rule_id` 改為新 ID；
    - `added_by` 保留原辦公室（`HC`），不要改成自己；
-   - 填 `reviewed_by: TP`、`reviewed_at: "YYYY-MM-DD"`（覆核日期）；
-   - `source_url` 必須有值；`legacy_import: false`。
+   - 他辦覆核：填 `reviewed_by: TP`、`reviewed_at: "YYYY-MM-DD"`（覆核日期）、`review_mode: peer`；
+   - 自行轉正：填 `reviewed_by: HC`（自己的辦公室代碼，等於 `added_by`）、`reviewed_at: "YYYY-MM-DD"`（轉正日期）、`review_mode: self`；
+   - `review_mode` 建議接在 `reviewed_at` 下一行（順序不檢查，但大家寫在同一處比較好找）；`source_url` 必須有值；`legacy_import: false`。
+   - `review_mode` 與 `reviewed_by`／`added_by` 不一致（同辦公室卻寫 `peer`、不同辦公室卻寫 `self`）或漏填，檢查都會擋下。
+
+   自行轉正後新檔的擴充欄位長這樣（21 個原欄位照抄 pending 檔，只改 `rule_id`）：
+
+   ```yaml
+   rule_id: LUR-9001
+   # …21 個原欄位照抄…
+   status: active
+   superseded_by: null
+   added_by: HC
+   reviewed_by: HC
+   reviewed_at: '2026-11-23'
+   review_mode: self
+   source_url: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=D0060013
+   legacy_import: false
+   ```
+
+   日後被抽查到時，在 `review_mode: self` 下面加兩行（只有 `self` 的規則可以填）：
+
+   ```yaml
+   spot_checked_at: '2026-12-15'
+   spot_check_note: 與官方原文一致
+   ```
+
 5. 編輯**原檔** `rules/pending/HC/XHC-1.yaml`：**只改兩處**——`status: active` 改成 `status: deprecated`、`superseded_by` 填新 ID。其他欄位一字不動，檔案也不刪，讓引用過 `XHC-1` 的清單查得到。
-   （本機檢查會擋下對其他辦公室 pending 檔的修改；只有「只改這兩欄、而且新規則的 `reviewed_by` 是你、`added_by` 是原辦公室」才放行。多改任何一欄都會被擋。）
+   （他辦覆核時，本機檢查會擋下對其他辦公室 pending 檔的修改；只有「只改這兩欄、而且新規則的 `reviewed_by` 是你、`added_by` 是原辦公室、`review_mode: peer`」才放行，多改任何一欄都會被擋。自行轉正改的是自己的 pending 資料夾，不受這項限制，但同樣只改這兩欄。）
 6. 在 `CHANGELOG.md` 寫「轉正：`XHC-1` → `<新ID>`」，再照 9.2 第 5 步匯出、檢查、提交（`git add rules exports CHANGELOG.md`）、推送。
 
 ### 9.4 檢查沒過怎麼辦
@@ -231,7 +265,8 @@ python -X utf8 core/tools/vault_audit.py
 | pending 資料夾與 ID 前綴不符 | HC 的規則必須在 `rules/pending/HC/` 且 ID 是 `XHC-` 開頭 |
 | 缺 `source_url` 或網域不在白名單 | 改填官方資料庫網址；不接受第三方彙編站 |
 | 已轉正規則被刪除 | 不能刪；要廢止改 `status: deprecated` 並填 `superseded_by` |
-| 轉正時覆核者等於新增者 | 換另一個辦公室覆核 |
+| 轉正：缺 `review_mode`、或與 `reviewed_by`／`added_by` 不一致 | 同辦公室（自行轉正）填 `self`，不同辦公室（他辦覆核）填 `peer` |
+| 抽查：`spot_checked_at`／`spot_check_note` 填在非 `self` 規則 | 刪掉這兩欄；只有自行轉正的規則做每月抽查 |
 | exports 未同步 | 重跑 `rulebook_export.py` 再 `git add exports` |
 | 修改了其他辦公室的 pending | 還原那些檔：`git restore <檔案>` |
 | `禁字：…`、`repo 外連結`、`frontmatter`（practice_notes） | 照訊息的「修法」改寫；標準見 [CLAUDE.md](CLAUDE.md)「共用實務筆記」一節 |

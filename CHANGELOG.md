@@ -29,6 +29,50 @@
 
 ---
 
+## 2026-11-23 TN 待覆核規則 40 條自行轉正（TN）
+
+- **改了什麼**：
+  - 規則：`rules/pending/TN/` 的 `XTN-1`～`XTN-40` 全部以自行轉正方式（`review_mode: self`、`reviewed_by: TN`、`reviewed_at: 2026-11-23`）複製到 `rules/national/` 並改配正式 ID；21 欄內容照原 pending 檔，只把「核對狀態」的「未覆核」改為「2026-11-23 TN 自行轉正（review_mode: self），每月抽查」，並把內文引用的 `XTN-` 編號換成新 ID。原 pending 檔保留，改 `status: deprecated`、`superseded_by` 填新 ID。
+  - 欄位規格（`rules/_fields.yaml`）：`national_prefixes` 由總部新配 9 個前綴——`RRA`（農村再生條例 M0110017）、`RRD`（農村再生發展區計畫審核及管理監督辦法 M0110023）、`RCR`（農村社區土地重劃條例 D0060007）、`NSP`（國土計畫法 D0070230）、`NSPS`（一定規模以上或性質特殊土地申請使用許可認定標準 D0070312）、`NSPA`（國土計畫使用許可申請辦法 GL001691）、`NSPR`（國土計畫使用許可審議規則 D0070310）、`NSPO`（國土計畫使用許可核發後應循事項辦法 GL001690）、`NSPF`（國土保育費及影響費收取辦法 D0070311）。
+  - 匯出：規則由 346 條增為 386 條（CSV、xlsx 的 `20_規則庫`、`90_規則狀態` 各多 40 列）。
+  - 配號慣例：條號三位數補零；多條合併取第一條；`-A<n>`＝附表 n；`-P<n>`＝第 n 項（同條有兩條以上規則時才加）；`-<n>`＝之 n。
+  - ⚠ `NSPS-`、`NSPA-`、`NSPR-`、`NSPO-`、`NSPF-` 共 20 條所依據的國土計畫法子法尚未施行，觸發條件與核對狀態原有的警示照舊保留。
+- **各辦公室要做事嗎**：
+  - TN：要。`git pull` → `sync_to_vault.py`。
+  - HC：要。`git pull` → `sync_to_vault.py`。原本請 HC／TP 覆核 `XTN-1`～`XTN-40` 的事項取消（已自行轉正）；下游清單引用 `XTN-` 編號者，請改填新 ID。
+  - TP：同 HC。
+  - TN2：同 HC。
+- **規則 ID**：
+  - 新增：`LUR-A1-RR`、`RRA-017`、`RRD-004`～`RRD-A2-6`（8 條）、`RCR-006`～`RCR-018`（4 條）、`NSP-023`～`NSP-045`（6 條）、`NSPS-003`～`NSPS-008`（5 條）、`NSPA-003`～`NSPA-012`（4 條）、`NSPR-010`～`NSPR-044`（9 條）、`NSPO-002`、`NSPF-009`（共 40 條，全部見下表）
+  - 轉正：
+
+    | 原 ID | 新 ID | 原 ID | 新 ID | 原 ID | 新 ID | 原 ID | 新 ID |
+    |---|---|---|---|---|---|---|---|
+    | `XTN-1` | `LUR-A1-RR` | `XTN-11` | `RCR-006` | `XTN-21` | `NSPS-003` | `XTN-31` | `NSPR-014` |
+    | `XTN-2` | `RRA-017` | `XTN-12` | `RCR-008` | `XTN-22` | `NSPS-003-A1` | `XTN-32` | `NSPR-015` |
+    | `XTN-3` | `RRD-020` | `XTN-13` | `RCR-011` | `XTN-23` | `NSPS-003-A2` | `XTN-33` | `NSPR-018` |
+    | `XTN-4` | `RRD-026` | `XTN-14` | `RCR-018` | `XTN-24` | `NSPS-003-A3` | `XTN-34` | `NSPR-021` |
+    | `XTN-5` | `RRD-027` | `XTN-15` | `NSP-023` | `XTN-25` | `NSPS-008` | `XTN-35` | `NSPR-022` |
+    | `XTN-6` | `RRD-030` | `XTN-16` | `NSP-045` | `XTN-26` | `NSPA-003` | `XTN-36` | `NSPR-030` |
+    | `XTN-7` | `RRD-031` | `XTN-17` | `NSP-024` | `XTN-27` | `NSPA-006` | `XTN-37` | `NSPR-041` |
+    | `XTN-8` | `RRD-031-1` | `XTN-18` | `NSP-024-P3` | `XTN-28` | `NSPA-009` | `XTN-38` | `NSPR-044` |
+    | `XTN-9` | `RRD-A2-6` | `XTN-19` | `NSP-028` | `XTN-29` | `NSPA-012` | `XTN-39` | `NSPO-002` |
+    | `XTN-10` | `RRD-004` | `XTN-20` | `NSP-032` | `XTN-30` | `NSPR-010` | `XTN-40` | `NSPF-009` |
+
+## 2026-11-23 開放各辦公室自行轉正自己的規則（TN）
+
+- **改了什麼**：
+  - 規則欄位（`rules/_fields.yaml`）：新增 `review_mode`（`peer`＝他辦覆核、`self`＝自行轉正），有 `reviewed_by` 時必填；新增選填 `spot_checked_at`（抽查日期）、`spot_check_note`（抽查結果一句話），只限 `self` 規則。
+  - `rule_check.py`：拿掉「`reviewed_by` 與 `added_by` 相同即擋」，改檢查 `review_mode` 一致性（同辦公室須 `self`、不同須 `peer`、`reviewed_by` 空白時 `review_mode` 也須空白；legacy 匯入規則免填）。本機 push、`--ci` 都適用。他辦公室 pending 資料夾仍不能新增、修改或刪除，只放行他辦覆核（`peer`）轉正的兩欄變動。
+  - 匯出：xlsx 的 `90_規則狀態` 在 `reviewed_at` 後加 `review_mode`、`spot_checked_at` 兩欄。**CSV 與 `20_規則庫` 的 21 欄不變。**
+  - CLAUDE.md、README 9.2～9.4 改寫轉正說明（含自行轉正 yaml 範例）。自行轉正每月抽查一部分回官方原文核對。
+- **各辦公室要做事嗎**：
+  - TN：要。push 後跑 `sync_to_vault.py`（匯出 xlsx 的 90 表多兩欄）。
+  - HC：要。`git pull` → `sync_to_vault.py`（匯出 xlsx 的 90 表多兩欄）。hook 不必重裝（hook 只呼叫 `rule_check.py`，本次未改 `install_hooks.py`）。之後自行轉正須填 `reviewed_by`＝自己代碼、`review_mode: self`。
+  - TP：同 HC。
+  - TN2：同 HC。
+- **規則 ID**：無（既有已轉正、非匯入規則中沒有填 `reviewed_by` 的，故無須補 `review_mode`）
+
 ## 2026-11-23 新增辦公室代碼 TN2（臺南第二辦公室）（TN）
 
 - **改了什麼**：`offices.yaml` 新增 `TN2`（臺南第二辦公室）；CLAUDE.md、README 的辦公室列表補上 TN2。`rules/pending/TN2/` 由 TN2 第一次新增規則時自行建立（其他辦公室不能在別人的 pending 資料夾放檔，`rule_check` 會擋）。新規則暫用 ID 為 `XTN2-<流水號>`。TN2 與 TN 是不同辦公室，可以互相覆核轉正。

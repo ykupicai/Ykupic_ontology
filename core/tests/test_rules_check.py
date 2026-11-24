@@ -107,12 +107,18 @@ def test_deleted_legacy_rule_blocked(repo):
     assert code == 1 and "[刪除轉正規則]" in out
 
 
-def test_reviewed_by_equals_added_by_blocked(repo):
+def test_reviewed_by_equals_added_by_needs_self_mode(repo):
+    """2026-11-23 起可自行轉正：reviewed_by＝added_by 要搭配 review_mode: self；標成 peer 仍擋。"""
     sup.write_rule(repo, "national", sup.make_rule("GEN-003", added_by="HC", reviewed_by="HC",
-                                                   reviewed_at="2026-11-20", source_url=URL))
+                                                   reviewed_at="2026-11-20", review_mode="peer", source_url=URL))
     sup.export(repo)
     code, out = run(repo)
-    assert code == 1 and "自己新增的規則不能自己轉正" in out
+    assert code == 1 and "review_mode 應為 self" in out
+    sup.write_rule(repo, "national", sup.make_rule("GEN-003", added_by="HC", reviewed_by="HC",
+                                                   reviewed_at="2026-11-20", review_mode="self", source_url=URL))
+    sup.export(repo)
+    code, out = run(repo)
+    assert code == 0, out
 
 
 def test_promoted_rule_without_review_blocked(repo):

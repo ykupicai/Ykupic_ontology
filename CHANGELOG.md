@@ -29,6 +29,11 @@
 
 ---
 
+## 2026-11-24 防冒名轉正檢查＋正式 ID 編法寫進手冊（TN）
+
+- **改了什麼**：`rule_check.py` 的 push 前檢查新增「冒名轉正」：新增正式規則，或改動既有正式規則的 `added_by`／`reviewed_by`／`reviewed_at`／`review_mode` 時，`reviewed_by` 必須等於本機 `office.yaml` 的辦公室代碼（只改內容不受限；CI 不做這項）。README 9.3 第 3 步、CLAUDE.md 補上正式 ID 編法（三位數條號、之 n 用 `-<n>`、項用 `-P<n>`、附表用 `-A<n>`）。
+- **各辦公室要做事嗎**：`git pull` 即可。往後轉正請在自己的電腦 push，`reviewed_by` 填自己的代碼；配正式 ID 照 README 9.3 的表。
+
 ## 2026-11-23 TN 待覆核規則 40 條自行轉正（TN）
 
 - **改了什麼**：

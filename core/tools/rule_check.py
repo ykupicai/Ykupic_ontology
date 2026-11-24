@@ -416,6 +416,10 @@ def diff_checks(repo_root: Path, base: str, head: str, head_rules: list, local_o
         if status == "D" and cat in ("national", "local") and stem not in by_id:
             issues.append(Issue(rel, "刪除轉正規則", f"已轉正規則「{stem}」在這次 push 範圍內被刪除",
                                 "用 git restore／git revert 還原；要廢止請改 status: deprecated 並填 superseded_by"))
+        if local_office and cat in ("national", "local") and status in ("A", "M"):
+            issue = _review_identity_issue(repo_root, base, head, rel, status, local_office)
+            if issue:
+                issues.append(issue)
         if local_office and cat == "pending" and group != local_office:
             if status == "M" and _same_values(repo_root, base, head, rel):
                 continue  # 純格式差異（例如被 rulebook_export 自動整理），值完全相同就放行
@@ -429,6 +433,31 @@ def diff_checks(repo_root: Path, base: str, head: str, head_rules: list, local_o
                                 f"（自行轉正只能由 {group} 辦公室轉正自己的規則）",
                                 f"還原這個檔（git restore --source={base[:12]} -- \"{rel}\" 後重新 commit），或請 {group} 辦公室自己改"))
     return issues
+
+
+REVIEW_KEYS = ("added_by", "reviewed_by", "reviewed_at", "review_mode")
+
+
+def _review_identity_issue(repo_root, base, head, rel, status, local_office) -> Issue | None:
+    """防冒名轉正（2026-11-24）：新增正式規則，或改動其轉正欄位時，reviewed_by 必須是本機辦公室。
+
+    只改內容、轉正欄位不動的修改照舊放行；CI 不知道是誰 push 的，不做這項檢查。
+    """
+    new = show_rule(repo_root, head, rel)
+    if new is None:
+        return None  # 解析失敗由靜態檢查回報
+    if status == "M":
+        old = show_rule(repo_root, base, rel)
+        if old is not None and all(old.get(k) == new.get(k) for k in REVIEW_KEYS):
+            return None
+    reviewed_by = new.get("reviewed_by")
+    if _empty(reviewed_by) or reviewed_by == local_office:
+        return None
+    verb = "新增" if status == "A" else "改動轉正欄位"
+    return Issue(rel, "冒名轉正",
+                 f"{verb}的正式規則 reviewed_by＝{reviewed_by}，但本機辦公室為 {local_office}。"
+                 "轉正（自行或他辦覆核）只能由實際覆核的辦公室在自己的電腦 push",
+                 f"reviewed_by 改為 {local_office}（並依 added_by 調整 review_mode），或交由 {reviewed_by} 辦公室自己轉正")
 
 
 def _same_values(repo_root, base, head, rel) -> bool:

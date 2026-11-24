@@ -189,6 +189,57 @@ def test_pre_push_peer_promotion_still_allowed(git_repo):
     assert code == 0, out
 
 
+@needs_git
+def test_pre_push_new_national_rule_impersonating_other_office_blocked(git_repo):
+    """TN 直接新增正式規則並冒用 HC 名義自行轉正（不經 pending）：擋下。"""
+    root, base = git_repo
+    sup.write_rule(root, "national", promoted("GEN-003", added_by="HC", reviewed_by="HC", review_mode="self"))
+    sup.export(root)
+    sup.commit_all(root, "冒名")
+    code, out = pre_push(root, base, "TN")
+    assert code == 1 and "[冒名轉正]" in out and "GEN-003" in out
+
+
+@needs_git
+def test_pre_push_peer_review_impersonating_reviewer_blocked(git_repo):
+    """HC 轉正自己的規則，卻填 reviewed_by=TP 假裝他辦覆核：擋下。"""
+    root, base = git_repo
+    sup.write_rule(root, "national", promoted("GEN-003", added_by="HC", reviewed_by="TP", review_mode="peer"))
+    sup.write_rule(root, "pending/HC", sup.make_rule("XHC-1", added_by="HC", source_url=URL,
+                                                     status="deprecated", superseded_by="GEN-003"))
+    sup.export(root)
+    sup.commit_all(root, "假他辦覆核")
+    code, out = pre_push(root, base, "HC")
+    assert code == 1 and "[冒名轉正]" in out
+
+
+@needs_git
+def test_pre_push_content_edit_of_other_office_rule_allowed(git_repo):
+    """他辦公室轉正的規則，只改內容、不動轉正欄位：放行。"""
+    root, base = git_repo
+    self_promote(root)
+    base2 = sup.git(root, "rev-parse", "HEAD").stdout.strip()
+    sup.write_rule(root, "national", promoted("GEN-003", added_by="HC", reviewed_by="HC", review_mode="self",
+                                              條文要旨="TN 補充說明後的要旨"))
+    sup.export(root)
+    sup.commit_all(root, "內容修正")
+    code, out = pre_push(root, base2, "TN")
+    assert code == 0, out
+
+
+@needs_git
+def test_pre_push_rewriting_reviewer_of_existing_rule_blocked(git_repo):
+    """改動既有正式規則的 reviewed_by 為他辦公室：擋下。"""
+    root, base = git_repo
+    self_promote(root)
+    base2 = sup.git(root, "rev-parse", "HEAD").stdout.strip()
+    sup.write_rule(root, "national", promoted("GEN-003", added_by="HC", reviewed_by="TP", review_mode="peer"))
+    sup.export(root)
+    sup.commit_all(root, "改覆核者")
+    code, out = pre_push(root, base2, "TN")
+    assert code == 1 and "[冒名轉正]" in out
+
+
 # ---------------------------------------------------------------- 匯出
 
 def test_export_status_sheet_has_new_columns_csv_unchanged(repo):

@@ -208,7 +208,7 @@ python -X utf8 core/tools/vault_audit.py
 | 他辦覆核 | 另一個辦公室（例：台北覆核新竹的 `XHC-1`） | 覆核辦公室（`TP`） | `peer` |
 | 自行轉正 | 新增規則的辦公室自己（例：新竹轉正自己的 `XHC-1`） | 自己的辦公室（`HC`，等於 `added_by`） | `self` |
 
-自行轉正只能轉正**自己辦公室新增**的 pending 規則，不能替別的辦公室自行轉正。自行轉正的規則每月會抽查一部分回官方原文核對，抽查結果記在 `spot_checked_at`（抽查日期）與 `spot_check_note`（一句話結果）；這兩欄只有 `review_mode: self` 的規則可以填。下游清單與報告可以用匯出 xlsx 的 `90_規則狀態` 工作表的 `review_mode` 欄區分兩種轉正。
+自行轉正只能轉正**自己辦公室新增**的 pending 規則，不能替別的辦公室自行轉正。轉正一律由**實際覆核的辦公室在自己的電腦 push**：新增正式規則、或改動既有正式規則的 `added_by`／`reviewed_by`／`reviewed_at`／`review_mode` 時，`reviewed_by` 必須是本機 `office.yaml` 的辦公室代碼，否則 push 前檢查會以「冒名轉正」擋下（只改內容、不動這四欄則不受限）。自行轉正的規則每月會抽查一部分回官方原文核對，抽查結果記在 `spot_checked_at`（抽查日期）與 `spot_check_note`（一句話結果）；這兩欄只有 `review_mode: self` 的規則可以填。下游清單與報告可以用匯出 xlsx 的 `90_規則狀態` 工作表的 `review_mode` 欄區分兩種轉正。
 
 以下以台北覆核新竹的 `XHC-1` 為例，自行轉正時把「台北」換成「新竹」即可：
 
@@ -219,6 +219,21 @@ python -X utf8 core/tools/vault_audit.py
    ```powershell
    Copy-Item rules/pending/HC/XHC-1.yaml rules/national/<新ID>.yaml
    ```
+
+   **正式 ID 的編法**（2026-11-24 定，各辦公室一致）：`<前綴>-<條號>` 再視需要接尾碼。
+
+   | 寫法 | 意思 | 例 |
+   |---|---|---|
+   | 條號補成三位數 | 第 n 條 | 第 20 條 → `RRD-020` |
+   | `-<n>` | 第 m 條之 n | 第 31 條之 1 → `RRD-031-1` |
+   | `-P<n>` | 第 n 項（同一條有兩條以上規則時才加） | 第 24 條第 3 項 → `NSP-024-P3` |
+   | `-A<n>` | 附表 n | 第 3 條附表一 → `NSPS-003-A1`；附表二（不掛條號）→ `RRD-A2-6` |
+   | 多條合併成一條規則 | 取第一條 | 第 30～33 條 → `NSPR-030` |
+
+   - `-P` 與 `-<n>` 不要混用：`NSP-024-3` 是「第 24 條之 3」，不是第 3 項。
+   - 附表裡同一張表拆多條時，可接附表內的列或備註編號（`RRD-A2-6`＝附表二、從備註 6 起），或接簡短英文代碼（`LUR-A1-RR`＝附表一的農村再生設施列）。
+   - 編好的 ID 若和既有規則重複，先確認是不是同一條已經轉正過；確實是不同規則，改用 `-P<n>` 或附表尾碼區分，不要接 `-2`（會被讀成「之 2」）。
+   - 地方規定同樣適用，只是前綴換成縣市代碼（例：`TNN-` 加自治條例簡稱與條號，簡稱請總部配號）。
 
 4. 編輯**新檔**：
    - `rule_id` 改為新 ID；
@@ -267,6 +282,7 @@ python -X utf8 core/tools/vault_audit.py
 | 已轉正規則被刪除 | 不能刪；要廢止改 `status: deprecated` 並填 `superseded_by` |
 | 轉正：缺 `review_mode`、或與 `reviewed_by`／`added_by` 不一致 | 同辦公室（自行轉正）填 `self`，不同辦公室（他辦覆核）填 `peer` |
 | 抽查：`spot_checked_at`／`spot_check_note` 填在非 `self` 規則 | 刪掉這兩欄；只有自行轉正的規則做每月抽查 |
+| 冒名轉正 | 新增或改動轉正欄位的正式規則，`reviewed_by` 不是本機辦公室。改成自己的代碼，或請該辦公室自己轉正 |
 | exports 未同步 | 重跑 `rulebook_export.py` 再 `git add exports` |
 | 修改了其他辦公室的 pending | 還原那些檔：`git restore <檔案>` |
 | `禁字：…`、`repo 外連結`、`frontmatter`（practice_notes） | 照訊息的「修法」改寫；標準見 [CLAUDE.md](CLAUDE.md)「共用實務筆記」一節 |

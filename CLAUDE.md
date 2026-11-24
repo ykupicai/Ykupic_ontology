@@ -39,10 +39,12 @@ Claude Code 在本 repo 啟動時會讀這份。**本檔與 vault 各層 CLAUDE.
   - **他辦覆核**（`review_mode: peer`）：另一個辦公室覆核，`reviewed_by` 填覆核辦公室代碼（≠ `added_by`）。
   - **自行轉正**（`review_mode: self`）：新增規則的辦公室自己轉正，`reviewed_by` 填自己的代碼（＝ `added_by`）。只能轉正自己辦公室新增的規則，國家法規與地方規定都適用。
   - `rule_check` 檢查 `review_mode` 與 `reviewed_by`／`added_by` 一致（同辦公室須 `self`、不同須 `peer`、有 `reviewed_by` 必填）。
+  - **防冒名**（2026-11-24）：push 前檢查要求新增的正式規則、或改動了 `added_by`／`reviewed_by`／`reviewed_at`／`review_mode` 的正式規則，`reviewed_by` 必須等於本機 `office.yaml` 的辦公室代碼。不能用別的辦公室名義轉正；只改內容不受限。CI 不知道 push 者是誰，這項只在本機 pre-push 檢查。
   - **自行轉正的規則每月抽查一部分**回官方原文核對，結果記在該規則的 `spot_checked_at`（抽查日期）與 `spot_check_note`（一句話結果），這兩欄只限 `self` 規則。下游清單與報告可依匯出 xlsx `90_規則狀態` 的 `review_mode` 區分他辦覆核與自行轉正。
   - 舊的 `X…` 檔不刪，標已轉正（`status: deprecated`）並在 `superseded_by` 填新 ID，引用過它的清單才查得到。步驟見 README 9.3。
 - 轉正前的規則可以用，但清單與報告要標示「未覆核」。pending 規則請在一兩個月內完成轉正（他辦覆核或自行轉正皆可；目前沒有自動提醒，靠各辦公室維護者定期看 `rules/pending/`）。
 - 新的中央法規前綴（例如新收一部法規）由總部配號，對照表在 `rules/_fields.yaml`；不在表內的前綴會被檢查擋下。
+- **正式 ID 編法**（2026-11-24 定）：`<前綴>-<三位數條號>`；之 n 接 `-<n>`（`RRD-031-1`）、第 n 項接 `-P<n>`（`NSP-024-P3`，同條有兩條以上規則才加）、附表 n 接 `-A<n>`（`NSPS-003-A1`、`RRD-A2-6`）；多條合併取第一條。詳表見 README 9.3 第 3 步。
 - 規則 ID 格式：`^[A-Z][A-Z0-9]*(-[A-Z0-9]+)+$` 且第一個連字號後含數字，全 repo 唯一，檔名必須等於 ID。地方規定的 ID 以縣市代碼開頭（`TNN-`、`KCG-`、`PTH-`…），縣市代碼由總部（TN）統一配號，不要自創。
 
 ## 誰可以改什麼

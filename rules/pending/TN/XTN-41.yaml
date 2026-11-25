@@ -19,8 +19,8 @@ rule_id: XTN-41
 完成後可升級為○: 否
 核對狀態: 已核對(全國法規資料庫全文 115.02.05 版第12條全條抄錄，2026-11-25 TN 撰寫；未覆核)
 覆寫/從屬總編規則: —
-status: active
-superseded_by: null
+status: deprecated
+superseded_by: EIAE-012
 added_by: TN
 reviewed_by: null
 reviewed_at: null
